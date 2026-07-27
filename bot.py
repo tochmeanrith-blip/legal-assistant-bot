@@ -14,10 +14,6 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GAS_URL = os.getenv("GAS_URL")
 
-# Config
-MAX_RESULTS_PER_QUERY = None  # None = unlimited, ឬដាក់លេខ ឧ. 20
-MESSAGE_DELAY = 0.5  # seconds between messages (avoid rate limit)
-
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -57,80 +53,106 @@ def list_docs():
     return call_gas({"mode": "list"})
 
 
-# ===================== Format =====================
-def format_article_results(data):
+# ===================== Format (Combined) =====================
+def format_search_results_combined(data):
+    """រួមលទ្ធផលទាំងអស់ក្នុងសារតែមួយ"""
     if not data.get("success"):
-        return [f"❌ Error: {data.get('error', 'Unknown')}"]
+        return f"❌ Error: {data.get('error', 'Unknown')}"
     
     results = data.get("results", [])
     if not results:
-        return [f"🔍 រកមិនឃើញមាត្រា {data.get('article')}"]
+        return f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ {data.get('query', '')}"
     
-    messages = []
-    header = f"📄 មាត្រា {data.get('article')} ({len(results)} match)\n"
-    header += "━━━━━━━━━━━━━━━━━━━━"
-    messages.append(header)
-    
-    for i, r in enumerate(results, 1):
-        content = r.get('content', '').replace("**", "").strip()
-        msg = f"📖 ឯកសារ៖ {r['document']}\n"
-        if len(results) > 1:
-            msg += f"📄 លទ្ធផលទី {i}/{len(results)}\n"
-        msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-        msg += content
-        messages.append(msg)
-    
-    return messages
-
-
-def format_search_results(data, max_results=None):
-    """Format search results - យកទាំងអស់ (default)"""
-    if not data.get("success"):
-        return [f"❌ Error: {data.get('error', 'Unknown')}"]
-    
-    results = data.get("results", [])
-    if not results:
-        return [f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ {data.get('query', '')}"]
-    
-    if max_results is None:
-        display_results = results
-    else:
-        display_results = results[:max_results]
-    
-    messages = []
     keywords = data.get("keywords", [])
     total = len(results)
-    showing = len(display_results)
     
-    # Header
-    header = f"🔍 លទ្ធផលស្វែងរក\n"
+    msg = f"🔍 លទ្ធផលស្វែងរក\n"
     if keywords:
-        header += f"🔑 Keywords: {', '.join(keywords)}\n"
-    header += f"📊 រកឃើញ៖ {total} លទ្ធផល"
-    if showing < total:
-        header += f" (បង្ហាញ {showing})"
-    header += "\n━━━━━━━━━━━━━━━━━━━━"
-    messages.append(header)
+        msg += f"🔑 Keywords: {', '.join(keywords)}\n"
+    msg += f"📊 រកឃើញ៖ {total} លទ្ធផល\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
-    for i, r in enumerate(display_results, 1):
+    for i, r in enumerate(results, 1):
         article = f"មាត្រា {r['article']}" if r.get("article") else ""
         content = r.get('content', '').replace("**", "").strip()
         
-        msg = f"📌 លទ្ធផលទី {i}/{total}\n"
+        msg += f"📌 លទ្ធផលទី {i}/{total}\n"
         msg += f"📖 {r['document']}\n"
         if article:
             msg += f"📄 {article}\n"
-        msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        msg += "─────────────────────\n"
         msg += content
-        messages.append(msg)
+        msg += "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
     
-    return messages
+    return msg
 
 
-def split_by_lines(text, max_length=4000):
+def format_article_results_combined(data):
+    """រួមមាត្រាទាំងអស់ក្នុងសារតែមួយ"""
+    if not data.get("success"):
+        return f"❌ Error: {data.get('error', 'Unknown')}"
+    
+    results = data.get("results", [])
+    if not results:
+        return f"🔍 រកមិនឃើញមាត្រា {data.get('article')}"
+    
+    msg = f"📄 មាត្រា {data.get('article')} ({len(results)} match)\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    for i, r in enumerate(results, 1):
+        content = r.get('content', '').replace("**", "").strip()
+        msg += f"📖 ឯកសារ៖ {r['document']}\n"
+        if len(results) > 1:
+            msg += f"📄 លទ្ធផលទី {i}/{len(results)}\n"
+        msg += "─────────────────────\n"
+        msg += content
+        msg += "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    return msg
+
+
+# ===================== Smart Split =====================
+def smart_split(text, max_length=4000):
+    """បំបែក text ត្រង់ចន្លោះលទ្ធផល (មិនកាត់ពាក់កណ្តាល)"""
+    if len(text) <= max_length:
+        return [text]
+    
+    parts = []
+    separator = "━━━━━━━━━━━━━━━━━━━━\n\n"
+    sections = text.split(separator)
+    
+    current = ""
+    for i, section in enumerate(sections):
+        section_with_sep = section + separator if i < len(sections) - 1 else section
+        
+        if len(current) + len(section_with_sep) <= max_length:
+            current += section_with_sep
+        else:
+            if current:
+                parts.append(current.rstrip())
+                current = ""
+            
+            if len(section_with_sep) > max_length:
+                sub_parts = _split_by_newline(section_with_sep, max_length)
+                parts.extend(sub_parts[:-1])
+                current = sub_parts[-1]
+            else:
+                current = section_with_sep
+    
+    if current:
+        parts.append(current.rstrip())
+    
+    return parts
+
+
+def _split_by_newline(text, max_length):
+    if len(text) <= max_length:
+        return [text]
+    
     lines = text.split('\n')
     parts = []
     current = ""
+    
     for line in lines:
         if len(line) > max_length:
             if current:
@@ -139,48 +161,43 @@ def split_by_lines(text, max_length=4000):
             for i in range(0, len(line), max_length):
                 parts.append(line[i:i+max_length])
             continue
+        
         if len(current) + len(line) + 1 > max_length:
             parts.append(current)
             current = line
         else:
             current = current + "\n" + line if current else line
+    
     if current:
         parts.append(current)
     return parts
 
 
-async def send_messages(update, messages, delay=MESSAGE_DELAY):
-    """Send messages with rate limiting"""
-    total = len(messages)
-    for i, msg in enumerate(messages):
+async def send_long_message(update, text, delay=0.3):
+    """ផ្ញើសារវែង ដោយបំបែកតែពេលចាំបាច់"""
+    MAX_LEN = 4000
+    
+    if len(text) <= MAX_LEN:
+        await update.message.reply_text(text)
+        return
+    
+    parts = smart_split(text, MAX_LEN)
+    total = len(parts)
+    
+    for i, part in enumerate(parts, 1):
+        prefix = f"📄 (ភាគ {i}/{total})\n\n" if total > 1 else ""
         try:
-            if len(msg) <= 4000:
-                await update.message.reply_text(msg)
-            else:
-                parts = split_by_lines(msg, max_length=4000)
-                for j, part in enumerate(parts):
-                    prefix = f"(ភាគ {j+1}/{len(parts)})\n\n" if len(parts) > 1 else ""
-                    await update.message.reply_text(prefix + part)
-                    if j < len(parts) - 1:
-                        await asyncio.sleep(delay)
-            
-            # Delay between messages
-            if i < total - 1:
+            await update.message.reply_text(prefix + part)
+            if i < total:
                 await asyncio.sleep(delay)
-                
         except Exception as e:
-            error_msg = str(e).lower()
-            logger.error(f"Send error at {i+1}/{total}: {e}")
-            
-            # Rate limit handling
-            if "429" in error_msg or "flood" in error_msg or "too many" in error_msg:
-                logger.warning("Rate limited, waiting 5s...")
+            logger.error(f"Send error part {i}: {e}")
+            if "429" in str(e) or "flood" in str(e).lower():
                 await asyncio.sleep(5)
                 try:
-                    await update.message.reply_text(msg[:4000])
-                    await asyncio.sleep(delay)
-                except Exception as e2:
-                    logger.error(f"Retry failed: {e2}")
+                    await update.message.reply_text(prefix + part)
+                except:
+                    pass
 
 
 # ===================== Handlers =====================
@@ -204,23 +221,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📖 ជំនួយប្រើប្រាស់\n"
+        "📖 ជំនួយ\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "🔍 ស្វែងរកតាមមាត្រា:\n"
         "  /article ៥\n"
         "  /article ១៨១ នីតិវិធីព្រហ្មទណ្ឌ\n\n"
-        "🔎 ស្វែងរកតាមពាក្យគន្លឹះ:\n"
+        "🔎 ស្វែងរកតាមពាក្យ:\n"
         "  លួច\n"
-        "  ចាប់ខ្លួន\n"
-        "  មូលហេតុនៃទោស\n\n"
-        "📚 ឯកសារ:\n"
-        "  /docs - បញ្ជីឯកសារទាំងអស់\n\n"
-        "🛠 គ្រប់គ្រង:\n"
-        "  /ping - សាកល្បង API\n"
-        "  /start - ចាប់ផ្តើមថ្មី\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "💡 គន្លឹះ: លទ្ធផលនឹងបង្ហាញទាំងអស់\n"
-        "   រៀងម្នាក់ៗតាមមាត្រា"
+        "  ចាប់ខ្លួន\n\n"
+        "📚 /docs — បញ្ជីឯកសារ\n"
+        "🛠 /ping — សាកល្បង API"
     )
 
 
@@ -261,8 +271,8 @@ async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(f"🔍 កំពុងស្វែងរកមាត្រា {article_num}...")
     data = find_article(article_num, doc_name)
-    messages = format_article_results(data)
-    await send_messages(update, messages)
+    text = format_article_results_combined(data)
+    await send_long_message(update, text)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -271,17 +281,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = search_law(query)
     total = data.get("count", 0)
     
-    # ជូនដំណឹងអំពីចំនួនលទ្ធផល
-    if total > 10:
-        await update.message.reply_text(
-            f"🔍 រកឃើញ {total} លទ្ធផល\n"
-            f"⏳ កំពុងបញ្ជូន... សូមរង់ចាំ ~{total * MESSAGE_DELAY:.0f} វិនាទី"
-        )
+    if total > 0:
+        await update.message.reply_text(f"🔍 រកឃើញ {total} លទ្ធផល...")
     else:
         await update.message.reply_text("🔍 កំពុងស្វែងរក...")
     
-    messages = format_search_results(data, max_results=MAX_RESULTS_PER_QUERY)
-    await send_messages(update, messages)
+    text = format_search_results_combined(data)
+    await send_long_message(update, text)
 
 
 # ===================== HTTP Server =====================
@@ -313,7 +319,6 @@ def main():
     
     logger.info(f"✅ Token: {TELEGRAM_TOKEN[:20]}...")
     logger.info(f"✅ GAS: {GAS_URL[:60]}...")
-    logger.info(f"✅ Max results: {MAX_RESULTS_PER_QUERY or 'unlimited'}")
     
     threading.Thread(target=run_http_server, daemon=True).start()
 
