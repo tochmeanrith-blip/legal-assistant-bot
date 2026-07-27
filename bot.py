@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import asyncio
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -12,6 +13,10 @@ load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GAS_URL = os.getenv("GAS_URL")
+
+# Config
+MAX_RESULTS_PER_QUERY = None  # None = unlimited, ឬដាក់លេខ ឧ. 20
+MESSAGE_DELAY = 0.5  # seconds between messages (avoid rate limit)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -67,17 +72,19 @@ def format_article_results(data):
     messages.append(header)
     
     for i, r in enumerate(results, 1):
+        content = r.get('content', '').replace("**", "").strip()
         msg = f"📖 ឯកសារ៖ {r['document']}\n"
         if len(results) > 1:
             msg += f"📄 លទ្ធផលទី {i}/{len(results)}\n"
         msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-        msg += r['content']
+        msg += content
         messages.append(msg)
     
     return messages
 
 
-def format_search_results(data):
+def format_search_results(data, max_results=None):
+    """Format search results - យកទាំងអស់ (default)"""
     if not data.get("success"):
         return [f"❌ Error: {data.get('error', 'Unknown')}"]
     
@@ -85,33 +92,45 @@ def format_search_results(data):
     if not results:
         return [f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ {data.get('query', '')}"]
     
+    if max_results is None:
+        display_results = results
+    else:
+        display_results = results[:max_results]
+    
     messages = []
     keywords = data.get("keywords", [])
-    header = f"🔍 លទ្ធផលស្វែងរក ({data.get('count')} matches)\n"
+    total = len(results)
+    showing = len(display_results)
+    
+    # Header
+    header = f"🔍 លទ្ធផលស្វែងរក\n"
     if keywords:
         header += f"🔑 Keywords: {', '.join(keywords)}\n"
-    header += "━━━━━━━━━━━━━━━━━━━━"
+    header += f"📊 រកឃើញ៖ {total} លទ្ធផល"
+    if showing < total:
+        header += f" (បង្ហាញ {showing})"
+    header += "\n━━━━━━━━━━━━━━━━━━━━"
     messages.append(header)
     
-    for i, r in enumerate(results[:5], 1):
+    for i, r in enumerate(display_results, 1):
         article = f"មាត្រា {r['article']}" if r.get("article") else ""
-        msg = f"📌 លទ្ធផលទី {i}\n"
+        content = r.get('content', '').replace("**", "").strip()
+        
+        msg = f"📌 លទ្ធផលទី {i}/{total}\n"
         msg += f"📖 {r['document']}\n"
         if article:
             msg += f"📄 {article}\n"
         msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-        msg += r['content']
+        msg += content
         messages.append(msg)
     
     return messages
 
 
 def split_by_lines(text, max_length=4000):
-    """Split text តាមបន្ទាត់"""
     lines = text.split('\n')
     parts = []
     current = ""
-    
     for line in lines:
         if len(line) > max_length:
             if current:
@@ -120,29 +139,48 @@ def split_by_lines(text, max_length=4000):
             for i in range(0, len(line), max_length):
                 parts.append(line[i:i+max_length])
             continue
-        
         if len(current) + len(line) + 1 > max_length:
             parts.append(current)
             current = line
         else:
             current = current + "\n" + line if current else line
-    
     if current:
         parts.append(current)
-    
     return parts
 
 
-async def send_messages(update, messages):
-    """Send list of messages"""
-    for msg in messages:
-        if len(msg) <= 4000:
-            await update.message.reply_text(msg)
-        else:
-            parts = split_by_lines(msg, max_length=4000)
-            for j, part in enumerate(parts):
-                prefix = f"(ភាគ {j+1}/{len(parts)})\n\n" if len(parts) > 1 else ""
-                await update.message.reply_text(prefix + part)
+async def send_messages(update, messages, delay=MESSAGE_DELAY):
+    """Send messages with rate limiting"""
+    total = len(messages)
+    for i, msg in enumerate(messages):
+        try:
+            if len(msg) <= 4000:
+                await update.message.reply_text(msg)
+            else:
+                parts = split_by_lines(msg, max_length=4000)
+                for j, part in enumerate(parts):
+                    prefix = f"(ភាគ {j+1}/{len(parts)})\n\n" if len(parts) > 1 else ""
+                    await update.message.reply_text(prefix + part)
+                    if j < len(parts) - 1:
+                        await asyncio.sleep(delay)
+            
+            # Delay between messages
+            if i < total - 1:
+                await asyncio.sleep(delay)
+                
+        except Exception as e:
+            error_msg = str(e).lower()
+            logger.error(f"Send error at {i+1}/{total}: {e}")
+            
+            # Rate limit handling
+            if "429" in error_msg or "flood" in error_msg or "too many" in error_msg:
+                logger.warning("Rate limited, waiting 5s...")
+                await asyncio.sleep(5)
+                try:
+                    await update.message.reply_text(msg[:4000])
+                    await asyncio.sleep(delay)
+                except Exception as e2:
+                    logger.error(f"Retry failed: {e2}")
 
 
 # ===================== Handlers =====================
@@ -150,16 +188,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "សួស្តី! 🇰🇭\n"
         "ខ្ញុំគឺ Bot ស្វែងរកច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា\n\n"
-        "របៀបប្រើ:\n\n"
+        "🔍 របៀបប្រើ:\n\n"
         "១. ស្វែងរកតាមពាក្យ:\n"
+        "   លួច\n"
         "   មូលហេតុនៃទោស\n\n"
         "២. ស្វែងរកមាត្រា:\n"
         "   មាត្រា ៥ ព្រហ្មទណ្ឌ\n"
-        "   /article ៥\n\n"
-        "៣. មើលឯកសារ:\n"
-        "   /docs\n\n"
-        "៤. Test API:\n"
-        "   /ping"
+        "   /article ៥ ព្រហ្មទណ្ឌ\n\n"
+        "៣. Commands:\n"
+        "   /docs - បញ្ជីឯកសារ\n"
+        "   /ping - test API\n"
+        "   /help - ជំនួយ"
+    )
+
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📖 ជំនួយប្រើប្រាស់\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "🔍 ស្វែងរកតាមមាត្រា:\n"
+        "  /article ៥\n"
+        "  /article ១៨១ នីតិវិធីព្រហ្មទណ្ឌ\n\n"
+        "🔎 ស្វែងរកតាមពាក្យគន្លឹះ:\n"
+        "  លួច\n"
+        "  ចាប់ខ្លួន\n"
+        "  មូលហេតុនៃទោស\n\n"
+        "📚 ឯកសារ:\n"
+        "  /docs - បញ្ជីឯកសារទាំងអស់\n\n"
+        "🛠 គ្រប់គ្រង:\n"
+        "  /ping - សាកល្បង API\n"
+        "  /start - ចាប់ផ្តើមថ្មី\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "💡 គន្លឹះ: លទ្ធផលនឹងបង្ហាញទាំងអស់\n"
+        "   រៀងម្នាក់ៗតាមមាត្រា"
     )
 
 
@@ -206,9 +267,20 @@ async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
-    await update.message.reply_text("🔍 កំពុងស្វែងរក...")
+    
     data = search_law(query)
-    messages = format_search_results(data)
+    total = data.get("count", 0)
+    
+    # ជូនដំណឹងអំពីចំនួនលទ្ធផល
+    if total > 10:
+        await update.message.reply_text(
+            f"🔍 រកឃើញ {total} លទ្ធផល\n"
+            f"⏳ កំពុងបញ្ជូន... សូមរង់ចាំ ~{total * MESSAGE_DELAY:.0f} វិនាទី"
+        )
+    else:
+        await update.message.reply_text("🔍 កំពុងស្វែងរក...")
+    
+    messages = format_search_results(data, max_results=MAX_RESULTS_PER_QUERY)
     await send_messages(update, messages)
 
 
@@ -241,11 +313,13 @@ def main():
     
     logger.info(f"✅ Token: {TELEGRAM_TOKEN[:20]}...")
     logger.info(f"✅ GAS: {GAS_URL[:60]}...")
+    logger.info(f"✅ Max results: {MAX_RESULTS_PER_QUERY or 'unlimited'}")
     
     threading.Thread(target=run_http_server, daemon=True).start()
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("ping", ping_cmd))
     app.add_handler(CommandHandler("docs", docs_cmd))
     app.add_handler(CommandHandler("article", article_cmd))
