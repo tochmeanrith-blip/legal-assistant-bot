@@ -110,15 +110,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(e)
         await update.message.reply_text("មានបញ្ហាកើតឡើង។ សូមសាកល្បងម្តងទៀត។")
 
-# ===================== Main (Polling Mode) =====================
+# ===================== Main (Fixed for Render) =====================
+import asyncio
+from aiohttp import web
+
 def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    logger.info("Bot is starting with Polling mode...")
-    application.run_polling()
+    # === Dummy Port for Render ===
+    async def handle(request):
+        return web.Response(text="Bot is running")
+
+    async def start_web_server():
+        app = web.Application()
+        app.router.add_get("/", handle)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 10000)))
+        await site.start()
+        print(f"HTTP server started on port {os.environ.get('PORT', 10000)}")
+
+    async def run_bot():
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling()
+        print("Bot started with Polling mode")
+
+    async def main_async():
+        await start_web_server()
+        await run_bot()
+        await asyncio.Event().wait()  # Keep running
+
+    asyncio.run(main_async())
 
 if __name__ == "__main__":
     main()
