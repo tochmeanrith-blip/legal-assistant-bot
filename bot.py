@@ -18,9 +18,11 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
 DRIVE_FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-
-# ⭐ ប្រើ model ដែលអ្នកមាន
 MODEL_NAME = "gemini-flash-lite-latest"
+
+# ⭐ Config
+MAX_TOTAL_CHARS = 200000       # កម្រិត context បញ្ជូនទៅ Gemini
+USE_FULL_KNOWLEDGE = True      # True = បញ្ជូនឯកសារទាំងអស់, False = ប្រើ RAG
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel(MODEL_NAME)
@@ -31,8 +33,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ===================== Cache =====================
-KNOWLEDGE_CACHE = {"text": None, "chunks": None}
+KNOWLEDGE_CACHE = {"text": None, "docs": None}
+
 
 # ===================== Google Drive =====================
 def get_drive_service():
@@ -59,162 +61,109 @@ def get_all_google_docs(folder_id):
         for folder in folders.get("files", []):
             fetch_recursive(folder["id"])
 
-    fetch_recursive(folder_id)
+    fetch_recursive(parent_id=folder_id)
     return all_files
 
 
 def extract_all_text(files):
     service = get_drive_service()
-    combined = ""
+    docs = []
     for file in files:
         try:
             content = service.files().export(
                 fileId=file["id"], mimeType="text/plain"
             ).execute()
             text = content.decode("utf-8")
-            combined += f"\n\n=== ឯកសារ: {file['name']} ===\n{text}"
+            docs.append({"name": file["name"], "text": text})
             logger.info(f"  ✓ Loaded: {file['name']} ({len(text)} chars)")
         except Exception as e:
             logger.error(f"  ✗ Error reading {file['name']}: {e}")
-    return combined
-
-
-# ===================== Chunking =====================
-def build_chunks(knowledge, chunk_size=1500, overlap=200):
-    """បំបែក knowledge ជា chunks តូចៗ ដោយរក្សា document boundary"""
-    chunks = []
-    documents = knowledge.split("=== ឯកសារ:")
-    
-    for doc in documents:
-        if not doc.strip():
-            continue
-        doc = "=== ឯកសារ:" + doc
-        
-        # យកឈ្មោះឯកសារ
-        doc_name = doc.split("\n")[0].replace("=== ឯកសារ:", "").strip()
-        
-        # បំបែកជា chunks ជាមួយ overlap
-        i = 0
-        while i < len(doc):
-            chunk_text = doc[i:i + chunk_size]
-            chunks.append({
-                "doc_name": doc_name,
-                "text": chunk_text
-            })
-            i += chunk_size - overlap
-    
-    return chunks
+    return docs
 
 
 def load_knowledge():
-    """Load knowledge base + build chunks"""
-    logger.info("📚 Loading knowledge base from Google Drive...")
+    logger.info("📚 Loading knowledge base...")
     files = get_all_google_docs(DRIVE_FOLDER_ID)
-    text = extract_all_text(files)
-    chunks = build_chunks(text)
+    docs = extract_all_text(files)
+
+    # បង្កើត text ពេញ
+    combined = ""
+    for d in docs:
+        combined += f"\n\n=== ឯកសារ: {d['name']} ===\n{d['text']}"
+
+    KNOWLEDGE_CACHE["docs"] = docs
+    KNOWLEDGE_CACHE["text"] = combined
+    logger.info(f"✅ Total: {len(docs)} docs, {len(combined)} chars")
+
+
+# ===================== N-gram Search (សម្រាប់អក្សរខ្មែរ) =====================
+def make_ngrams(text, n=3):
+    """បង្កើត n-gram ពី text"""
+    text = text.replace(" ", "").replace("\n", "")
+    return set(text[i:i+n] for i in range(len(text) - n + 1))
+
+
+def find_relevant_docs(question, docs, max_chars=200000):
+    """រកឯកសារពាក់ព័ន្ធដោយប្រើ n-gram matching"""
+    question_ngrams = make_ngrams(question, n=3)
     
-    KNOWLEDGE_CACHE["text"] = text
-    KNOWLEDGE_CACHE["chunks"] = chunks
+    if not question_ngrams:
+        # បើ n-gram ទទេ → យកឯកសារទាំងអស់
+        return build_full_context(docs, max_chars)
     
-    logger.info(f"✅ Total: {len(files)} files | {len(text)} chars | {len(chunks)} chunks")
-
-
-def get_chunks():
-    if KNOWLEDGE_CACHE["chunks"] is None:
-        load_knowledge()
-    return KNOWLEDGE_CACHE["chunks"]
-
-
-# ===================== RAG Search =====================
-def score_chunk(chunk_text, keywords):
-    """ដាក់ពិន្ទុ chunk តាមចំនួន keyword match"""
-    score = 0
-    text_lower = chunk_text.lower()
-    for kw in keywords:
-        kw_lower = kw.lower()
-        # រាប់ចំនួនដង
-        count = text_lower.count(kw_lower)
-        # ពាក្យវែងជាង ២ តួ ទទួលបានពិន្ទុច្រើនជាង
-        weight = len(kw) if len(kw) > 2 else 1
-        score += count * weight
-    return score
-
-
-def extract_keywords(question):
-    """ដក keyword ចេញពីសំណួរ"""
-    # Words ដែលមិនសំខាន់ (stop words ខ្មែរ)
-    stop_words = {"ចូរ", "ជា", "នេះ", "នោះ", "ដែល", "និង", "ឬ", "តើ", "អ្វី", 
-                  "អី", "ខ្ញុំ", "ចង់", "ដឹង", "សូម", "ប្រាប់", "អំពី", "នៅ", "មាន"}
-    
-    words = question.split()
-    keywords = [w.strip("។៖?!.,") for w in words if w.strip("។៖?!.,") not in stop_words]
-    keywords = [w for w in keywords if len(w) >= 2]
-    return keywords
-
-
-def find_relevant_chunks(question, chunks, top_k=6):
-    """រកchunks ដែលពាក់ព័ន្ធបំផុត"""
-    keywords = extract_keywords(question)
-    logger.info(f"Keywords: {keywords}")
-    
+    # ដាក់ពិន្ទុឯកសារនីមួយៗ
     scored = []
-    for chunk in chunks:
-        score = score_chunk(chunk["text"], keywords)
-        if score > 0:
-            scored.append((score, chunk))
+    for doc in docs:
+        doc_ngrams = make_ngrams(doc["text"][:5000], n=3)  # sample ដើម្បីលឿន
+        overlap = len(question_ngrams & doc_ngrams)
+        scored.append((overlap, doc))
+        logger.info(f"  Doc '{doc['name']}': score={overlap}")
     
-    # តម្រៀបយក top_k
+    # តម្រៀប
     scored.sort(reverse=True, key=lambda x: x[0])
-    top = scored[:top_k]
     
-    logger.info(f"Found {len(scored)} relevant chunks, using top {len(top)}")
+    # យកឯកសារពាក់ព័ន្ធបំផុត
+    result = ""
+    for score, doc in scored:
+        chunk = f"\n\n=== ឯកសារ: {doc['name']} ===\n{doc['text']}"
+        if len(result) + len(chunk) > max_chars:
+            # កាត់ឲ្យសមនឹង limit
+            remaining = max_chars - len(result)
+            if remaining > 1000:
+                result += chunk[:remaining]
+            break
+        result += chunk
     
-    # បើគ្មាន match → យក chunk ដំបូងពីឯកសារនីមួយៗ
-    if not top:
-        seen_docs = set()
-        fallback = []
-        for chunk in chunks:
-            if chunk["doc_name"] not in seen_docs:
-                seen_docs.add(chunk["doc_name"])
-                fallback.append((0, chunk))
-                if len(fallback) >= 3:
-                    break
-        top = fallback
-    
-    return [chunk for _, chunk in top]
+    return result
 
 
-def build_context(relevant_chunks):
-    """បង្កើត context text ពី chunks"""
-    # ដាក់ក្រុម chunks តាមឯកសារ
-    by_doc = {}
-    for chunk in relevant_chunks:
-        doc_name = chunk["doc_name"]
-        if doc_name not in by_doc:
-            by_doc[doc_name] = []
-        by_doc[doc_name].append(chunk["text"])
+def build_full_context(docs, max_chars=200000):
+    """បញ្ជូនឯកសារទាំងអស់ដោយ distribute ស្មើគ្នា"""
+    if not docs:
+        return ""
     
-    # បង្កើត context
-    context = ""
-    for doc_name, texts in by_doc.items():
-        context += f"\n\n### ឯកសារ: {doc_name} ###\n"
-        context += "\n...\n".join(texts)
+    # បែងចែក budget ស្មើគ្នា
+    per_doc = max_chars // len(docs)
     
-    return context
+    result = ""
+    for doc in docs:
+        text = doc["text"][:per_doc]
+        result += f"\n\n=== ឯកសារ: {doc['name']} ===\n{text}"
+    
+    return result
 
 
 # ===================== Gemini =====================
 def ask_gemini(question, context_text):
     prompt = f"""អ្នកគឺជាអ្នកជំនាញច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា។
-ឆ្លើយសំណួរដោយផ្អែកលើឯកសារច្បាប់ដែលបានផ្តល់ជូនខាងក្រោមតែប៉ុណ្ណោះ។
+ឆ្លើយសំណួរដោយផ្អែកលើឯកសារច្បាប់ដែលបានផ្តល់ជូនខាងក្រោម។
 
 **គោលការណ៍៖**
-- ឆ្លើយច្បាស់លាស់ ត្រង់ចំណុច
-- តែងតែបញ្ជាក់ឈ្មោះឯកសារ និងលេខមាត្រា
-- បើគ្មានទិន្នន័យពាក់ព័ន្ធ សូមជម្រាបថា "ខ្ញុំមិនមានព័ត៌មានពាក់ព័ន្ធនឹងសំណួរនេះនៅក្នុងឯកសារទេ"
-- មិនត្រូវប្រឌិតព័ត៌មានឡើយ
+- ឆ្លើយច្បាស់លាស់ ត្រង់ចំណុច ជាភាសាខ្មែរ
+- បញ្ជាក់ឈ្មោះឯកសារ និងលេខមាត្រា (បើមាន)
+- បើគ្មានទិន្នន័យពាក់ព័ន្ធនៅក្នុងឯកសារ សូមឆ្លើយថា "ខ្ញុំមិនមានព័ត៌មានពាក់ព័ន្ធនឹងសំណួរនេះនៅក្នុងឯកសារទេ"
 
---- ឯកសារច្បាប់ពាក់ព័ន្ធ ---
+--- ឯកសារច្បាប់ ---
 {context_text}
 
 --- សំណួរ ---
@@ -223,18 +172,18 @@ def ask_gemini(question, context_text):
 --- ចម្លើយ ---
 """
 
-    logger.info(f"Sending to Gemini: {len(prompt)} chars")
+    logger.info(f"📤 Sending to Gemini: {len(prompt)} chars")
 
     try:
         response = model.generate_content(prompt)
         
         if not response.candidates:
             logger.error(f"No candidates: {response.prompt_feedback}")
-            return "⚠️ Gemini មិនអាចឆ្លើយបានទេ (content blocked)។"
+            return "⚠️ Gemini មិនអាចឆ្លើយបានទេ (blocked)។"
         
         if not response.text:
             reason = response.candidates[0].finish_reason
-            logger.error(f"Empty response. Finish reason: {reason}")
+            logger.error(f"Empty response. Reason: {reason}")
             return f"⚠️ ចម្លើយទទេ (reason: {reason})។"
         
         return response.text
@@ -243,54 +192,49 @@ def ask_gemini(question, context_text):
         import traceback
         logger.error(f"Gemini Error: {type(e).__name__}: {e}")
         logger.error(traceback.format_exc())
-        return f"⚠️ Gemini API Error: {str(e)[:200]}"
+        return f"⚠️ Gemini Error: {str(e)[:200]}"
 
 
 # ===================== Telegram Handlers =====================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "សួស្តី! ខ្ញុំគឺជា Telegram Bot ជំនួយការប្រព័ន្ធច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា 🇰🇭\n\n"
+        "សួស្តី! ខ្ញុំគឺជា Bot ជំនួយច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា 🇰🇭\n\n"
         "សូមវាយសំណួររបស់លោកអ្នក។\n\n"
         "Commands:\n"
-        "/reload - Reload ឯកសារពី Google Drive\n"
+        "/reload - Reload ឯកសារ\n"
         "/status - មើលស្ថានភាព\n"
-        "/test - សាកល្បង Gemini"
+        "/test - test Gemini\n"
+        "/mode - ប្តូរ mode (full/rag)"
     )
 
 
 async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("កំពុង reload ឯកសារ...")
+    await update.message.reply_text("កំពុង reload...")
     try:
         load_knowledge()
-        chunks = get_chunks()
-        await update.message.reply_text(
-            f"✅ Reload រួចរាល់\n"
-            f"Chunks: {len(chunks)}\n"
-            f"Total chars: {len(KNOWLEDGE_CACHE['text'])}"
-        )
+        docs = KNOWLEDGE_CACHE["docs"]
+        msg = f"✅ Reload រួច\n"
+        for d in docs:
+            msg += f"  • {d['name']}: {len(d['text']):,} chars\n"
+        await update.message.reply_text(msg)
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
+        await update.message.reply_text(f"❌ {e}")
 
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chunks = KNOWLEDGE_CACHE.get("chunks")
-    text = KNOWLEDGE_CACHE.get("text")
+    docs = KNOWLEDGE_CACHE.get("docs") or []
+    text = KNOWLEDGE_CACHE.get("text") or ""
     
-    if not chunks:
-        await update.message.reply_text("⚠️ Knowledge base មិនទាន់ load")
-        return
-    
-    # រាប់ចំនួនឯកសារ
-    docs = set(c["doc_name"] for c in chunks)
+    mode = "FULL (ឯកសារទាំងអស់)" if USE_FULL_KNOWLEDGE else "RAG (ស្វែងរក)"
     
     msg = f"📊 **Status**\n"
     msg += f"Model: {MODEL_NAME}\n"
+    msg += f"Mode: {mode}\n"
+    msg += f"Max chars: {MAX_TOTAL_CHARS:,}\n"
     msg += f"Documents: {len(docs)}\n"
-    msg += f"Chunks: {len(chunks)}\n"
     msg += f"Total chars: {len(text):,}\n\n"
-    msg += "**Documents:**\n"
     for d in docs:
-        msg += f"  • {d}\n"
+        msg += f"  • {d['name']}: {len(d['text']):,}\n"
     
     await update.message.reply_text(msg)
 
@@ -298,9 +242,16 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def test_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         response = model.generate_content("សូមឆ្លើយថា 'ដំណើរការ'")
-        await update.message.reply_text(f"✅ {MODEL_NAME}\nResponse: {response.text}")
+        await update.message.reply_text(f"✅ Response: {response.text}")
     except Exception as e:
         await update.message.reply_text(f"❌ {type(e).__name__}: {e}")
+
+
+async def mode_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global USE_FULL_KNOWLEDGE
+    USE_FULL_KNOWLEDGE = not USE_FULL_KNOWLEDGE
+    mode = "FULL" if USE_FULL_KNOWLEDGE else "RAG"
+    await update.message.reply_text(f"✅ Mode: {mode}")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -308,16 +259,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("កំពុងគិត... 🤔")
 
     try:
-        chunks = get_chunks()
-        relevant = find_relevant_chunks(question, chunks)
-        context_text = build_context(relevant)
+        docs = KNOWLEDGE_CACHE.get("docs")
+        if not docs:
+            load_knowledge()
+            docs = KNOWLEDGE_CACHE["docs"]
         
-        logger.info(f"Question: {question[:80]}")
-        logger.info(f"Context length: {len(context_text)} chars")
+        # ជ្រើសរើសវិធី
+        if USE_FULL_KNOWLEDGE:
+            context_text = build_full_context(docs, MAX_TOTAL_CHARS)
+            logger.info(f"Using FULL mode: {len(context_text)} chars")
+        else:
+            context_text = find_relevant_docs(question, docs, MAX_TOTAL_CHARS)
+            logger.info(f"Using RAG mode: {len(context_text)} chars")
         
         answer = ask_gemini(question, context_text)
         
-        # Telegram limit = 4096 chars
+        # Split messages វែង
         if len(answer) > 4000:
             for i in range(0, len(answer), 4000):
                 await update.message.reply_text(answer[i:i+4000])
@@ -326,7 +283,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     except Exception as e:
         logger.error(e)
-        await update.message.reply_text(f"មានបញ្ហាកើតឡើង៖ {e}")
+        await update.message.reply_text(f"❌ បញ្ហា: {e}")
 
 
 # ===================== HTTP Server =====================
@@ -349,24 +306,22 @@ def run_http_server():
 
 # ===================== Main =====================
 def main():
-    # Preload knowledge
     try:
         load_knowledge()
     except Exception as e:
-        logger.error(f"Failed to preload: {e}")
+        logger.error(f"Preload failed: {e}")
 
-    # HTTP server
     threading.Thread(target=run_http_server, daemon=True).start()
 
-    # Telegram bot
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("reload", reload_cmd))
     application.add_handler(CommandHandler("status", status_cmd))
     application.add_handler(CommandHandler("test", test_cmd))
+    application.add_handler(CommandHandler("mode", mode_cmd))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    logger.info(f"🤖 Bot starting with model: {MODEL_NAME}")
+    logger.info(f"🤖 Bot starting | Model: {MODEL_NAME}")
     application.run_polling(drop_pending_updates=True)
 
 
