@@ -110,9 +110,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(e)
         await update.message.reply_text("មានបញ្ហាកើតឡើង។ សូមសាកល្បងម្តងទៀត។")
 
-# ===================== Main (Fixed for Render) =====================
-import asyncio
-from aiohttp import web
+# ===================== Main (Simple Port for Render) =====================
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -120,31 +121,27 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # === Dummy Port for Render ===
-    async def handle(request):
-        return web.Response(text="Bot is running")
+    # === Dummy HTTP Server (ដើម្បី Render មិនបង្ហាញ error) ===
+    class SimpleHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"Bot is running")
 
-    async def start_web_server():
-        app = web.Application()
-        app.router.add_get("/", handle)
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 10000)))
-        await site.start()
-        print(f"HTTP server started on port {os.environ.get('PORT', 10000)}")
+    def run_http_server():
+        port = int(os.environ.get("PORT", 10000))
+        server = HTTPServer(("0.0.0.0", port), SimpleHandler)
+        print(f"HTTP server running on port {port}")
+        server.serve_forever()
 
-    async def run_bot():
-        await application.initialize()
-        await application.start()
-        await application.updater.start_polling()
-        print("Bot started with Polling mode")
+    # បើក HTTP Server នៅ thread ដាច់ដោយឡែក
+    http_thread = threading.Thread(target=run_http_server, daemon=True)
+    http_thread.start()
 
-    async def main_async():
-        await start_web_server()
-        await run_bot()
-        await asyncio.Event().wait()  # Keep running
-
-    asyncio.run(main_async())
+    # បើក Bot (Polling)
+    print("Telegram Bot is starting...")
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
