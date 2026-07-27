@@ -11,7 +11,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-GAS_URL = os.getenv("GAS_URL")  # ⭐ Web App URL ពី Apps Script
+GAS_URL = os.getenv("GAS_URL")
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -21,16 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 # ===================== Apps Script API =====================
-def call_gas(payload, timeout=30):
+def call_gas(payload, timeout=60):
     """Call Google Apps Script API"""
     try:
+        logger.info(f"→ GAS request: {payload}")
         response = requests.post(
             GAS_URL,
             json=payload,
             timeout=timeout,
             allow_redirects=True
         )
+        logger.info(f"← GAS status: {response.status_code}")
+        
+        if response.status_code != 200:
+            return {"success": False, "error": f"HTTP {response.status_code}"}
+        
         return response.json()
+    except requests.exceptions.Timeout:
+        return {"success": False, "error": "Timeout - GAS ឆ្លើយយឺត"}
     except Exception as e:
         logger.error(f"GAS Error: {e}")
         return {"success": False, "error": str(e)}
@@ -53,33 +61,32 @@ def list_docs():
 
 # ===================== Format Response =====================
 def format_search_results(data):
-    """Format search results ជា Telegram message"""
     if not data.get("success"):
         return f"❌ Error: {data.get('error', 'Unknown')}"
     
     results = data.get("results", [])
     if not results:
-        return f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ *{data.get('query')}*"
+        return f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ {data.get('query', '')}"
     
     keywords = data.get("keywords", [])
     msg = f"🔍 លទ្ធផលស្វែងរក ({data.get('count')} matches)\n"
-    msg += f"🔑 Keywords: {', '.join(keywords)}\n"
+    if keywords:
+        msg += f"🔑 Keywords: {', '.join(keywords)}\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
     for i, r in enumerate(results[:5], 1):
-        article = f"មាត្រា {r['article']}" if r.get("article") else "N/A"
+        article = f"មាត្រា {r['article']}" if r.get("article") else ""
         msg += f"📌 លទ្ធផលទី {i}\n"
-        msg += f"📖 ឯកសារ: {r['document']}\n"
-        msg += f"📄 {article}\n"
-        msg += f"⭐ ពិន្ទុ: {r['score']}\n\n"
-        msg += f"{r['content']}\n"
+        msg += f"📖 {r['document']}\n"
+        if article:
+            msg += f"📄 {article}\n"
+        msg += f"\n{r['content']}\n"
         msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
     return msg
 
 
 def format_article_results(data):
-    """Format article search results"""
     if not data.get("success"):
         return f"❌ Error: {data.get('error', 'Unknown')}"
     
@@ -103,28 +110,42 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "សួស្តី! 🇰🇭\n"
         "ខ្ញុំគឺ Bot ស្វែងរកច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា\n\n"
-        "**របៀបប្រើ:**\n\n"
-        "1️⃣ **ស្វែងរកតាមពាក្យគន្លឹះ:**\n"
-        "   វាយ: `មូលហេតុនៃទោស`\n\n"
-        "2️⃣ **ស្វែងរកមាត្រា:**\n"
-        "   វាយ: `/article ៥`\n"
-        "   ឬ: `/article ៥ ក្រមព្រហ្មទណ្ឌ`\n\n"
-        "3️⃣ **ឯកសារទាំងអស់:**\n"
-        "   វាយ: `/docs`",
-        parse_mode="Markdown"
+        "របៀបប្រើ:\n\n"
+        "១. ស្វែងរកតាមពាក្យ:\n"
+        "   វាយ: មូលហេតុនៃទោស\n\n"
+        "២. ស្វែងរកមាត្រា:\n"
+        "   វាយ: មាត្រា ៥ ព្រហ្មទណ្ឌ\n"
+        "   ឬ: /article ៥ ព្រហ្មទណ្ឌ\n\n"
+        "៣. មើលឯកសារ:\n"
+        "   វាយ: /docs\n\n"
+        "៤. Test API:\n"
+        "   វាយ: /ping"
     )
 
 
+async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Test connection to GAS"""
+    await update.message.reply_text("🔍 កំពុងសាកល្បង GAS...")
+    try:
+        response = requests.get(GAS_URL, timeout=30)
+        await update.message.reply_text(
+            f"Status: {response.status_code}\n"
+            f"Response: {response.text[:500]}"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ {e}")
+
+
 async def docs_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("កំពុងទាញយកបញ្ជីឯកសារ...")
+    await update.message.reply_text("📚 កំពុងទាញបញ្ជីឯកសារ...")
     
     data = list_docs()
     if not data.get("success"):
-        await update.message.reply_text(f"❌ Error: {data.get('error')}")
+        await update.message.reply_text(f"❌ {data.get('error')}")
         return
     
     docs = data.get("documents", [])
-    msg = f"📚 មានឯកសារ {len(docs)} ក្នុងបណ្ណាល័យ៖\n\n"
+    msg = f"📚 ឯកសារ {len(docs)}៖\n\n"
     for i, d in enumerate(docs, 1):
         msg += f"{i}. {d['name']}\n   ({d['size']:,} តួអក្សរ)\n\n"
     
@@ -136,8 +157,8 @@ async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not args:
         await update.message.reply_text(
             "សូមបញ្ជាក់លេខមាត្រា\n"
-            "ឧទាហរណ៍: /article ៥\n"
-            "ឬ: /article ៥ ក្រមព្រហ្មទណ្ឌ"
+            "ឧ.: /article ៥\n"
+            "ឬ: /article ៥ ព្រហ្មទណ្ឌ"
         )
         return
     
@@ -149,22 +170,21 @@ async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = find_article(article_num, doc_name)
     msg = format_article_results(data)
     
-    # Split messages វែង
-    if len(msg) > 4000:
-        for i in range(0, len(msg), 4000):
-            await update.message.reply_text(msg[i:i+4000])
-    else:
-        await update.message.reply_text(msg)
+    await send_long_message(update, msg)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
-    await update.message.reply_text(f"🔍 កំពុងស្វែងរក: {query}")
+    await update.message.reply_text(f"🔍 កំពុងស្វែងរក...")
     
     data = search_law(query)
     msg = format_search_results(data)
     
-    # Split messages វែង
+    await send_long_message(update, msg)
+
+
+async def send_long_message(update, msg):
+    """Split messages វែង"""
     if len(msg) > 4000:
         for i in range(0, len(msg), 4000):
             await update.message.reply_text(msg[i:i+4000])
@@ -192,10 +212,24 @@ def run_http_server():
 
 # ===================== Main =====================
 def main():
+    # Validate env vars
+    if not TELEGRAM_TOKEN:
+        logger.error("❌ TELEGRAM_TOKEN not set!")
+        return
+    if not GAS_URL:
+        logger.error("❌ GAS_URL not set!")
+        return
+    
+    logger.info(f"✅ TELEGRAM_TOKEN: {TELEGRAM_TOKEN[:20]}...")
+    logger.info(f"✅ GAS_URL: {GAS_URL[:60]}...")
+    
+    # HTTP server
     threading.Thread(target=run_http_server, daemon=True).start()
 
+    # Telegram bot
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("ping", ping_cmd))
     application.add_handler(CommandHandler("docs", docs_cmd))
     application.add_handler(CommandHandler("article", article_cmd))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
