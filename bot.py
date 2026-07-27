@@ -145,3 +145,41 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ===================== TEST SERVICE ACCOUNT =====================
+def test_service_account():
+    """សាកល្បងថា service-account.json ដំណើរការឬអត់"""
+    try:
+        print("=== កំពុងសាកល្បង Service Account ===")
+        
+        creds = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE,
+            scopes=["https://www.googleapis.com/auth/drive.readonly"]
+        )
+        
+        service = build("drive", "v3", credentials=creds)
+        
+        # សាកល្បងអាន Folder
+        results = service.files().list(
+            q=f"'{DRIVE_FOLDER_ID}' in parents",
+            pageSize=5,
+            fields="files(id, name)"
+        ).execute()
+        
+        files = results.get('files', [])
+        print(f"✅ Service Account ដំណើរការបានត្រឹមត្រូវ!")
+        print(f"រកឃើញ {len(files)} ឯកសារ/ឯកសារក្នុង Folder")
+        
+        for f in files:
+            print(f"  - {f['name']}")
+            
+        return True
+        
+    except Exception as e:
+        print(f"❌ Service Account មានបញ្ហា: {e}")
+        return False
+
+# ===================== របៀបសាកល្បង =====================
+if __name__ == "__main__":
+    # បើអ្នក run ឯកសារ bot.py ដោយផ្ទាល់ វានឹងសាកល្បង Service Account
+    test_service_account()
