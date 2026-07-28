@@ -1,336 +1,457 @@
+# ============================================================
+# Cambodia Legal Assistant Bot - v9
+# Python Telegram Bot
+# Updated: July 2026
+# ============================================================
+
 import os
-import logging
-import threading
+import re
 import asyncio
 import requests
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+)
 
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+# ============================================================
+# ⚙️ CONFIGURATION
+# ============================================================
+
+TOKEN   = os.getenv("TELEGRAM_TOKEN")
 GAS_URL = os.getenv("GAS_URL")
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+VERSION = "v9"
+
+# Khmer digit range for regex
+KHMER_DIGITS = "០-៩"
 
 
-# ===================== Apps Script API =====================
-def call_gas(payload, timeout=60):
+# ============================================================
+# 🌐 GAS API CALL
+# ============================================================
+
+def call_gas(payload: dict) -> dict:
+    """
+    POST to Google Apps Script Web App.
+    Returns parsed JSON or error dict.
+    Timeout = 60s (Gemini needs more time).
+    """
     try:
-        logger.info(f"→ GAS: {payload}")
-        response = requests.post(GAS_URL, json=payload, timeout=timeout, allow_redirects=True)
-        logger.info(f"← Status: {response.status_code}, Size: {len(response.text)}")
-        
-        if response.status_code != 200:
-            return {"success": False, "error": f"HTTP {response.status_code}"}
-        return response.json()
-    except requests.exceptions.Timeout:
-        return {"success": False, "error": "Timeout"}
-    except Exception as e:
-        logger.error(f"GAS Error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-def search_law(query):
-    return call_gas({"mode": "search", "query": query})
-
-
-def find_article(article_num, doc_name=None):
-    payload = {"mode": "article", "article": article_num}
-    if doc_name:
-        payload["doc"] = doc_name
-    return call_gas(payload)
-
-
-def list_docs():
-    return call_gas({"mode": "list"})
-
-
-# ===================== Format (Combined) =====================
-def format_search_results_combined(data):
-    """រួមលទ្ធផលទាំងអស់ក្នុងសារតែមួយ"""
-    if not data.get("success"):
-        return f"❌ Error: {data.get('error', 'Unknown')}"
-    
-    results = data.get("results", [])
-    if not results:
-        return f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់៖ {data.get('query', '')}"
-    
-    keywords = data.get("keywords", [])
-    total = len(results)
-    
-    msg = f"🔍 លទ្ធផលស្វែងរក\n"
-    if keywords:
-        msg += f"🔑 Keywords: {', '.join(keywords)}\n"
-    msg += f"📊 រកឃើញ៖ {total} លទ្ធផល\n"
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    for i, r in enumerate(results, 1):
-        article = f"មាត្រា {r['article']}" if r.get("article") else ""
-        content = r.get('content', '').replace("**", "").strip()
-        
-        msg += f"📌 លទ្ធផលទី {i}/{total}\n"
-        msg += f"📖 {r['document']}\n"
-        if article:
-            msg += f"📄 {article}\n"
-        msg += "─────────────────────\n"
-        msg += content
-        msg += "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    return msg
-
-
-def format_article_results_combined(data):
-    """រួមមាត្រាទាំងអស់ក្នុងសារតែមួយ"""
-    if not data.get("success"):
-        return f"❌ Error: {data.get('error', 'Unknown')}"
-    
-    results = data.get("results", [])
-    if not results:
-        return f"🔍 រកមិនឃើញមាត្រា {data.get('article')}"
-    
-    msg = f"📄 មាត្រា {data.get('article')} ({len(results)} match)\n"
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    for i, r in enumerate(results, 1):
-        content = r.get('content', '').replace("**", "").strip()
-        msg += f"📖 ឯកសារ៖ {r['document']}\n"
-        if len(results) > 1:
-            msg += f"📄 លទ្ធផលទី {i}/{len(results)}\n"
-        msg += "─────────────────────\n"
-        msg += content
-        msg += "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    return msg
-
-
-# ===================== Smart Split =====================
-def smart_split(text, max_length=4000):
-    """បំបែក text ត្រង់ចន្លោះលទ្ធផល (មិនកាត់ពាក់កណ្តាល)"""
-    if len(text) <= max_length:
-        return [text]
-    
-    parts = []
-    separator = "━━━━━━━━━━━━━━━━━━━━\n\n"
-    sections = text.split(separator)
-    
-    current = ""
-    for i, section in enumerate(sections):
-        section_with_sep = section + separator if i < len(sections) - 1 else section
-        
-        if len(current) + len(section_with_sep) <= max_length:
-            current += section_with_sep
-        else:
-            if current:
-                parts.append(current.rstrip())
-                current = ""
-            
-            if len(section_with_sep) > max_length:
-                sub_parts = _split_by_newline(section_with_sep, max_length)
-                parts.extend(sub_parts[:-1])
-                current = sub_parts[-1]
-            else:
-                current = section_with_sep
-    
-    if current:
-        parts.append(current.rstrip())
-    
-    return parts
-
-
-def _split_by_newline(text, max_length):
-    if len(text) <= max_length:
-        return [text]
-    
-    lines = text.split('\n')
-    parts = []
-    current = ""
-    
-    for line in lines:
-        if len(line) > max_length:
-            if current:
-                parts.append(current)
-                current = ""
-            for i in range(0, len(line), max_length):
-                parts.append(line[i:i+max_length])
-            continue
-        
-        if len(current) + len(line) + 1 > max_length:
-            parts.append(current)
-            current = line
-        else:
-            current = current + "\n" + line if current else line
-    
-    if current:
-        parts.append(current)
-    return parts
-
-
-async def send_long_message(update, text, delay=0.3):
-    """ផ្ញើសារវែង ដោយបំបែកតែពេលចាំបាច់"""
-    MAX_LEN = 4000
-    
-    if len(text) <= MAX_LEN:
-        await update.message.reply_text(text)
-        return
-    
-    parts = smart_split(text, MAX_LEN)
-    total = len(parts)
-    
-    for i, part in enumerate(parts, 1):
-        prefix = f"📄 (ភាគ {i}/{total})\n\n" if total > 1 else ""
-        try:
-            await update.message.reply_text(prefix + part)
-            if i < total:
-                await asyncio.sleep(delay)
-        except Exception as e:
-            logger.error(f"Send error part {i}: {e}")
-            if "429" in str(e) or "flood" in str(e).lower():
-                await asyncio.sleep(5)
-                try:
-                    await update.message.reply_text(prefix + part)
-                except:
-                    pass
-
-
-# ===================== Handlers =====================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "សួស្តី! 🇰🇭\n"
-        "ខ្ញុំគឺ Bot ស្វែងរកច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា\n\n"
-        "🔍 របៀបប្រើ:\n\n"
-        "១. ស្វែងរកតាមពាក្យ:\n"
-        "   លួច\n"
-        "   មូលហេតុនៃទោស\n\n"
-        "២. ស្វែងរកមាត្រា:\n"
-        "   មាត្រា ៥ ព្រហ្មទណ្ឌ\n"
-        "   /article ៥ ព្រហ្មទណ្ឌ\n\n"
-        "៣. Commands:\n"
-        "   /docs - បញ្ជីឯកសារ\n"
-        "   /ping - test API\n"
-        "   /help - ជំនួយ"
-    )
-
-
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📖 ជំនួយ\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "🔍 ស្វែងរកតាមមាត្រា:\n"
-        "  /article ៥\n"
-        "  /article ១៨១ នីតិវិធីព្រហ្មទណ្ឌ\n\n"
-        "🔎 ស្វែងរកតាមពាក្យ:\n"
-        "  លួច\n"
-        "  ចាប់ខ្លួន\n\n"
-        "📚 /docs — បញ្ជីឯកសារ\n"
-        "🛠 /ping — សាកល្បង API"
-    )
-
-
-async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔍 កំពុងសាកល្បង...")
-    try:
-        response = requests.get(GAS_URL, timeout=30)
-        await update.message.reply_text(
-            f"Status: {response.status_code}\n"
-            f"Response: {response.text[:500]}"
+        response = requests.post(
+            GAS_URL,
+            json=payload,
+            timeout=60
         )
+        return response.json()
+
+    except requests.exceptions.Timeout:
+        return {
+            "status": "error",
+            "formatted": "⏱️ API timeout — សូមសាកល្បងម្តងទៀត"
+        }
     except Exception as e:
-        await update.message.reply_text(f"❌ {e}")
+        return {
+            "status": "error",
+            "formatted": f"❌ API Error: {str(e)}"
+        }
 
 
-async def docs_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📚 កំពុងទាញឯកសារ...")
-    data = list_docs()
-    if not data.get("success"):
-        await update.message.reply_text(f"❌ {data.get('error')}")
+# ============================================================
+# 🔍 API HELPERS
+# ============================================================
+
+def api_search(query: str) -> dict:
+    return call_gas({
+        "action": "search",
+        "query": query
+    })
+
+
+def api_article(number: str, doc_filter: str = "") -> dict:
+    return call_gas({
+        "action": "article",
+        "number": number,
+        "filter": doc_filter
+    })
+
+
+def api_list_docs() -> dict:
+    return call_gas({"action": "list_docs"})
+
+
+def api_ping() -> dict:
+    return call_gas({"action": "ping"})
+
+
+# ============================================================
+# ✂️ SMART MESSAGE SPLITTER
+# ============================================================
+
+def smart_split(text: str, max_length: int = 4000) -> list[str]:
+    """
+    Split long messages intelligently:
+    Priority: split at --- > \n\n > \n > char limit
+    """
+    if len(text) <= max_length:
+        return [text]
+
+    parts = []
+    current = ""
+
+    # Try splitting by "---" sections
+    sections = text.split("\n---\n")
+
+    for section in sections:
+        candidate = (current + "\n---\n" + section) if current else section
+
+        if len(candidate) <= max_length:
+            current = candidate
+        else:
+            # Save current part
+            if current:
+                parts.append(current.strip())
+
+            # If single section > max_length, split by paragraphs
+            if len(section) > max_length:
+                paragraphs = section.split("\n\n")
+                current = ""
+                for para in paragraphs:
+                    candidate2 = (current + "\n\n" + para) if current else para
+                    if len(candidate2) <= max_length:
+                        current = candidate2
+                    else:
+                        if current:
+                            parts.append(current.strip())
+                        # Last resort: hard split
+                        if len(para) > max_length:
+                            for i in range(0, len(para), max_length):
+                                parts.append(para[i:i+max_length])
+                        else:
+                            current = para
+            else:
+                current = section
+
+    if current:
+        parts.append(current.strip())
+
+    return parts if parts else [text]
+
+
+# ============================================================
+# 📨 SEND LONG MESSAGE
+# ============================================================
+
+async def send_long_message(
+    update: Update,
+    text: str,
+    parse_mode: str = "Markdown"
+) -> None:
+    """
+    Send message with auto-pagination for long texts.
+    Falls back to plain text if Markdown parse fails.
+    """
+    MAX = 4000
+    parts = smart_split(text, MAX)
+    total = len(parts)
+
+    for i, part in enumerate(parts):
+        # Add page indicator if multiple parts
+        if total > 1:
+            header = f"📄 *ទំព័រ {i+1}/{total}*\n\n"
+            content = header + part
+        else:
+            content = part
+
+        # Try with Markdown first
+        try:
+            await update.message.reply_text(
+                content,
+                parse_mode=parse_mode
+            )
+        except Exception:
+            # Fallback: plain text (strip markdown)
+            try:
+                plain = content \
+                    .replace("*", "") \
+                    .replace("_", "") \
+                    .replace("`", "")
+                await update.message.reply_text(plain)
+            except Exception as e:
+                await update.message.reply_text(
+                    f"❌ Error sending message: {str(e)}"
+                )
+
+        # Rate limit protection
+        if total > 1:
+            await asyncio.sleep(0.5)
+
+
+# ============================================================
+# 🎯 COMMAND HANDLERS
+# ============================================================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    welcome = (
+        f"🇰🇭 *សួស្តី\\! ខ្ញុំជា Bot ជំនួយការផ្នែកច្បាប់កម្ពុជា*\n\n"
+        f"⚖️ *Version {VERSION}*\n\n"
+        f"✅ ស្វែងរកមាត្រាជាក់លាក់\n"
+        f"✅ ស្វែងរកតាមពាក្យគន្លឹះ\n"
+        f"✅ លទ្ធផលរៀបចំស្អាតដោយ Gemini AI\n"
+        f"✅ ខ្លឹមសារត្រឹមត្រូវ ១០០%\n\n"
+        f"📝 *របៀបប្រើ:*\n"
+        f"• វាយពាក្យ: `លួច`\n"
+        f"• វាយ: `មាត្រា ១៨១`\n"
+        f"• ប្រើ: `/article ១៨១ ព្រហ្មទណ្ឌ`\n\n"
+        f"💡 /help — ព័ត៌មានបន្ថែម"
+    )
+    await update.message.reply_text(welcome, parse_mode="Markdown")
+
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    help_text = (
+        "📚 *មគ្គុទ្ទេសក៍ប្រើប្រាស់*\n\n"
+        "🔹 *ស្វែងរកតាមពាក្យ:*\n"
+        "   វាយ `លួច` → រកមាត្រាពាក់ព័ន្ធ\n"
+        "   វាយ `មូលហេតុនៃទោស` → រកមាត្រា\n\n"
+        "🔹 *ស្វែងរកមាត្រា:*\n"
+        "   `/article ១៨១`\n"
+        "   `/article ១៨១ ព្រហ្មទណ្ឌ`\n"
+        "   `មាត្រា ៣៥៣` (វាយដោយផ្ទាល់)\n\n"
+        "🔹 *Commands:*\n"
+        "   /docs — បញ្ជីឯកសារ\n"
+        "   /ping — ពិនិត្យ API\n"
+        "   /help — ជំនួយ\n\n"
+        "⚖️ *ឯកសារបច្ចុប្បន្ន:*\n"
+        "   📄 ក្រមព្រហ្មទណ្ឌ ២០០៩\n"
+        "   📄 ក្រមនីតិវិធីព្រហ្មទណ្ឌ ២០០៧\n"
+        "   📄 ក្រមនីតិវិធីរដ្ឋប្បវេណី ២០០៧"
+    )
+    await update.message.reply_text(help_text, parse_mode="Markdown")
+
+
+async def article_cmd(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """
+    /article [number] [optional: doc filter]
+    Examples:
+      /article ១៨១
+      /article 181 ព្រហ្មទណ្ឌ
+    """
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ *សូមបញ្ជាក់លេខមាត្រា*\n\n"
+            "ឧទាហរណ៍:\n"
+            "• `/article ១៨១`\n"
+            "• `/article ១៨១ ព្រហ្មទណ្ឌ`",
+            parse_mode="Markdown"
+        )
         return
-    
-    docs = data.get("documents", [])
-    msg = f"📚 ឯកសារ {len(docs)}៖\n\n"
-    for i, d in enumerate(docs, 1):
-        msg += f"{i}. {d['name']}\n   ({d['size']:,} តួអក្សរ)\n\n"
-    await update.message.reply_text(msg)
 
+    number     = context.args[0]
+    doc_filter = " ".join(context.args[1:]) if len(context.args) > 1 else ""
 
-async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if not args:
-        await update.message.reply_text("សូមបញ្ជាក់លេខមាត្រា\nឧ.: /article ៥ ព្រហ្មទណ្ឌ")
-        return
-    
-    article_num = args[0]
-    doc_name = " ".join(args[1:]) if len(args) > 1 else None
-    
-    await update.message.reply_text(f"🔍 កំពុងស្វែងរកមាត្រា {article_num}...")
-    data = find_article(article_num, doc_name)
-    text = format_article_results_combined(data)
-    await send_long_message(update, text)
+    # Show loading indicator
+    loading_msg = await update.message.reply_text(
+        f"⏳ *កំពុងស្វែងរក មាត្រា {number}...*",
+        parse_mode="Markdown"
+    )
 
+    # Call API
+    result = api_article(number, doc_filter)
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.message.text
-    
-    data = search_law(query)
-    total = data.get("count", 0)
-    
-    if total > 0:
-        await update.message.reply_text(f"🔍 រកឃើញ {total} លទ្ធផល...")
+    # Delete loading message
+    try:
+        await loading_msg.delete()
+    except Exception:
+        pass
+
+    # Handle response
+    if result.get("status") == "ok":
+        if result.get("found"):
+            formatted = result.get("formatted", "")
+            await send_long_message(update, formatted)
+        else:
+            await update.message.reply_text(
+                result.get("formatted", f"❌ រកមិនឃើញ *មាត្រា {number}*"),
+                parse_mode="Markdown"
+            )
     else:
-        await update.message.reply_text("🔍 កំពុងស្វែងរក...")
-    
-    text = format_search_results_combined(data)
-    await send_long_message(update, text)
+        error_msg = result.get("formatted", "❌ API Error")
+        await update.message.reply_text(error_msg, parse_mode="Markdown")
 
 
-# ===================== HTTP Server =====================
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"Bot is running")
-    def log_message(self, format, *args):
+async def docs_cmd(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """List all available documents"""
+    loading_msg = await update.message.reply_text("⏳ *កំពុងទាញបញ្ជីឯកសារ...*",
+                                                   parse_mode="Markdown")
+
+    result = api_list_docs()
+
+    try:
+        await loading_msg.delete()
+    except Exception:
+        pass
+
+    if result.get("status") == "ok":
+        docs = result.get("docs", [])
+        count = result.get("count", 0)
+
+        text = f"📚 *ឯកសារច្បាប់ ({count} ឯកសារ)*\n\n"
+        for i, doc_name in enumerate(docs, 1):
+            text += f"{'📄'} {i}\\. {doc_name}\n"
+
+        text += "\n💡 ប្រើ `/article [លេខ] [ឈ្មោះក្រម]` ដើម្បីស្វែងរក"
+
+        await update.message.reply_text(text, parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ មិនអាចទាញបញ្ជីឯកសារ")
+
+
+async def ping_cmd(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Test API connection"""
+    loading_msg = await update.message.reply_text("⏳ Testing...")
+
+    result = api_ping()
+
+    try:
+        await loading_msg.delete()
+    except Exception:
+        pass
+
+    if result.get("status") == "ok":
+        await update.message.reply_text(
+            f"✅ *API ដំណើរការល្អ\\!*\n\n"
+            f"🤖 Version: `{result.get('version', '?')}`\n"
+            f"💬 {result.get('message', '')}",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            f"❌ *API Error*\n{result.get('formatted', 'Unknown error')}",
+            parse_mode="Markdown"
+        )
+
+
+# ============================================================
+# 💬 TEXT MESSAGE HANDLER
+# ============================================================
+
+async def handle_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """
+    Handle regular text messages.
+    Auto-detect:
+    - "មាត្រា ១៨១" → article search
+    - other text   → keyword search
+    """
+    text = update.message.text.strip()
+
+    if not text:
         return
 
+    # ── Auto-detect Article Query ──────────────────────────
+    article_pattern = re.compile(
+        r"^មាត្រា\s*([0-9" + KHMER_DIGITS + r"]+)(.*)",
+        re.UNICODE
+    )
+    article_match = article_pattern.match(text)
 
-def run_http_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
-    logger.info(f"HTTP on port {port}")
-    server.serve_forever()
+    if article_match:
+        number     = article_match.group(1).strip()
+        doc_filter = article_match.group(2).strip()
 
+        loading_msg = await update.message.reply_text(
+            f"⏳ *ស្វែងរក មាត្រា {number}...*",
+            parse_mode="Markdown"
+        )
 
-# ===================== Main =====================
-def main():
-    if not TELEGRAM_TOKEN:
-        logger.error("❌ TELEGRAM_TOKEN not set!")
+        result = api_article(number, doc_filter)
+
+        try:
+            await loading_msg.delete()
+        except Exception:
+            pass
+
+        if result.get("status") == "ok" and result.get("found"):
+            await send_long_message(update, result["formatted"])
+        else:
+            await update.message.reply_text(
+                result.get("formatted", f"❌ រកមិនឃើញ មាត្រា {number}"),
+                parse_mode="Markdown"
+            )
         return
-    if not GAS_URL:
-        logger.error("❌ GAS_URL not set!")
-        return
-    
-    logger.info(f"✅ Token: {TELEGRAM_TOKEN[:20]}...")
-    logger.info(f"✅ GAS: {GAS_URL[:60]}...")
-    
-    threading.Thread(target=run_http_server, daemon=True).start()
 
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("ping", ping_cmd))
-    app.add_handler(CommandHandler("docs", docs_cmd))
+    # ── Keyword Search ─────────────────────────────────────
+    loading_msg = await update.message.reply_text(
+        f"🔍 *ស្វែងរក:* `{text}`",
+        parse_mode="Markdown"
+    )
+
+    result = api_search(text)
+
+    try:
+        await loading_msg.delete()
+    except Exception:
+        pass
+
+    if result.get("status") == "ok":
+        count = result.get("count", 0)
+        formatted = result.get("formatted", "")
+
+        if count > 0:
+            await send_long_message(update, formatted)
+        else:
+            await update.message.reply_text(
+                formatted or f"❌ រកមិនឃើញ: *{text}*",
+                parse_mode="Markdown"
+            )
+    else:
+        await update.message.reply_text(
+            result.get("formatted", "❌ API Error"),
+            parse_mode="Markdown"
+        )
+
+
+# ============================================================
+# 🚀 MAIN
+# ============================================================
+
+def main() -> None:
+    print(f"🤖 Starting Cambodia Legal Bot {VERSION}...")
+    print(f"📡 GAS URL: {GAS_URL[:50]}..." if GAS_URL else "❌ No GAS_URL!")
+
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    # Register handlers
+    app.add_handler(CommandHandler("start",   start))
+    app.add_handler(CommandHandler("help",    help_cmd))
     app.add_handler(CommandHandler("article", article_cmd))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("docs",    docs_cmd))
+    app.add_handler(CommandHandler("ping",    ping_cmd))
 
-    logger.info("🤖 Bot starting")
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        handle_message
+    ))
+
+    print("✅ Bot started! Press Ctrl+C to stop.")
     app.run_polling(drop_pending_updates=True)
 
 
