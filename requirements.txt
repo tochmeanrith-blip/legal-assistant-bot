@@ -1,4 +1,4 @@
 python-telegram-bot>=2​1.0
 python-dotenv
 requests
-reportlab==4.1.0
+weasyprint==62.3
