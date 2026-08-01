@@ -210,7 +210,8 @@ def make_progress_bar(current, total, width=15):
     return f"{bar} {percent}%"
 
 
-Preview Mode (correct total docs)
+# ═══════════════════════════════════════════════
+# ⭐ FIXED: Preview Mode (correct total docs)
 # ═══════════════════════════════════════════════
 def format_preview_mode(data, session, pagination_info=None):
     results = data.get("results", [])
@@ -267,6 +268,7 @@ def format_preview_mode(data, session, pagination_info=None):
     msg += "👆 <i>ចុចប៊ូតុងខាងក្រោមដើម្បីមើលពេញ</i>"
     
     return msg
+    
     
 # ═══════════════════════════════════════════════
 # ⭐ FIXED: Detailed Mode (correct total docs)
