@@ -210,17 +210,21 @@ def make_progress_bar(current, total, width=15):
     return f"{bar} {percent}%"
 
 
-# ═══════════════════════════════════════════════
-# Preview Mode (TOC)
+Preview Mode (correct total docs)
 # ═══════════════════════════════════════════════
 def format_preview_mode(data, session, pagination_info=None):
     results = data.get("results", [])
     if not results:
         return "🔍 រកមិនឃើញលទ្ធផល"
     
-    groups = group_results_by_document(results)
-    total_docs = len(groups)
-    total_articles = pagination_info["total"] if pagination_info else len(results)
+    # ⭐ FIX: រាប់ច្បាប់ពី ALL results មិនមែនតែ page
+    all_results = session.get("all_results", results)
+    all_groups = group_results_by_document(all_results)
+    total_docs = len(all_groups)  # ⭐ ចំនួនច្បាប់ពិត
+    total_articles = len(all_results)  # ⭐ ចំនួនមាត្រាពិត
+    
+    # Groups នៅ page បច្ចុប្បន្ន (សម្រាប់បង្ហាញ)
+    page_groups = group_results_by_document(results)
     
     query = session.get("query", "")
     msg = f"🔍 <b>ស្វែងរក:</b> <code>{escape_html(query)}</code>\n"
@@ -232,7 +236,17 @@ def format_preview_mode(data, session, pagination_info=None):
     
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
-    page_groups = group_results_by_document(results)
+    # ⭐ Show breakdown ALL documents (មិនមែនតែ page)
+    filter_active = session.get("filter", "all")
+    if filter_active == "all" and total_docs > 1:
+        msg += "📚 <b>ច្បាប់ទាំងអស់:</b>\n"
+        for doc_name, doc_results in all_groups.items():
+            cat = get_law_category(doc_name)
+            in_page = "👁" if doc_name in page_groups else ""
+            msg += f"  {cat['emoji']} {escape_html(doc_name)} ({len(doc_results)}) {in_page}\n"
+        msg += "\n"
+    
+    # Display current page results
     for doc_name, doc_results in page_groups.items():
         cat = get_law_category(doc_name)
         msg += f"{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b>\n"
@@ -253,10 +267,9 @@ def format_preview_mode(data, session, pagination_info=None):
     msg += "👆 <i>ចុចប៊ូតុងខាងក្រោមដើម្បីមើលពេញ</i>"
     
     return msg
-
-
+    
 # ═══════════════════════════════════════════════
-# Detailed Mode (Full content)
+# ⭐ FIXED: Detailed Mode (correct total docs)
 # ═══════════════════════════════════════════════
 def format_detailed_mode(data, session, pagination_info=None):
     results = data.get("results", [])
@@ -265,9 +278,11 @@ def format_detailed_mode(data, session, pagination_info=None):
     if not results:
         return "🔍 រកមិនឃើញលទ្ធផល"
     
-    groups = group_results_by_document(results)
-    total_articles = pagination_info["total"] if pagination_info else len(results)
-    total_docs = len(groups)
+    # ⭐ FIX: រាប់ពី ALL results
+    all_results = session.get("all_results", results)
+    all_groups = group_results_by_document(all_results)
+    total_docs = len(all_groups)
+    total_articles = len(all_results)
     
     msg = f"🔍 <b>ស្វែងរក:</b> <code>{escape_html(session.get('query', ''))}</code>\n"
     msg += f"📊 <b>{total_articles}</b> មាត្រា | <b>{total_docs}</b> ច្បាប់"
@@ -281,7 +296,14 @@ def format_detailed_mode(data, session, pagination_info=None):
     
     for doc_idx, (doc_name, doc_results) in enumerate(page_groups.items()):
         cat = get_law_category(doc_name)
-        msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b>\n"
+        # ⭐ បង្ហាញ total ក្នុងច្បាប់នោះ (សរុប)
+        total_in_doc = len(all_groups.get(doc_name, []))
+        current_in_page = len(doc_results)
+        
+        if total_in_doc > current_in_page:
+            msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({current_in_page}/{total_in_doc})\n"
+        else:
+            msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({total_in_doc})\n"
         
         for r in doc_results:
             article = r.get("article", "")
