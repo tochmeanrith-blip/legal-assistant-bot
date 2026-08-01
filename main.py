@@ -13,13 +13,19 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
-    filters, ContextTypes, CallbackQueryHandler
+    filters, ContextTypes, CallbackQueryHandler, InlineQueryHandler
 )
+from telegram import InlineQueryResultArticle, InputTextMessageContent
+from uuid import uuid4
 
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GAS_URL = os.getenv("GAS_URL")
+
+# ⭐ v17: Admin IDs (សម្រាប់ /stats)
+ADMIN_IDS = os.getenv("ADMIN_IDS", "").split(",")
+ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS if x.strip().isdigit()]
 
 RESULTS_PER_PAGE = 5
 SESSIONS_FILE = "user_sessions.json"
@@ -42,7 +48,7 @@ def load_sessions():
             with open(SESSIONS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 USER_SESSIONS = {int(k): v for k, v in data.items()}
-            logger.info(f"✅ Loaded {len(USER_SESSIONS)} sessions from file")
+            logger.info(f"✅ Loaded {len(USER_SESSIONS)} sessions")
         else:
             logger.info("ℹ️ No existing sessions file")
     except Exception as e:
@@ -85,6 +91,10 @@ def get_law_category(doc_name):
         return {"category": "other", "emoji": "🟢", "icon": "💰", "label": "ពាណិជ្ជកម្ម"}
     if "ដីធ្លី" in doc_name:
         return {"category": "other", "emoji": "🟢", "icon": "🏞️", "label": "ដីធ្លី"}
+    if "បរិស្ថាន" in doc_name:
+        return {"category": "other", "emoji": "🟢", "icon": "🌳", "label": "បរិស្ថាន"}
+    if "អនីតិជន" in doc_name:
+        return {"category": "other", "emoji": "🟢", "icon": "👶", "label": "អនីតិជន"}
     return {"category": "other", "emoji": "🟢", "icon": "📄", "label": doc_name}
 
 def group_results_by_document(results):
@@ -97,11 +107,11 @@ def group_results_by_document(results):
     return groups
 
 # ═══════════════════════════════════════════════
-# API Calls
+# API Calls (v17: Enhanced)
 # ═══════════════════════════════════════════════
-def call_gas(payload, timeout=60):
+def call_gas(payload, timeout=90):
     try:
-        logger.info(f"→ GAS: {payload}")
+        logger.info(f"→ GAS: mode={payload.get('mode')}")
         response = requests.post(GAS_URL, json=payload, timeout=timeout, allow_redirects=True)
         logger.info(f"← Status: {response.status_code}")
         if response.status_code != 200:
@@ -111,8 +121,13 @@ def call_gas(payload, timeout=60):
         logger.error(f"GAS Error: {e}")
         return {"success": False, "error": str(e)}
 
-def search_law(query):
-    return call_gas({"mode": "search", "query": query})
+def search_law(query, user_id="anonymous", use_ai=True):
+    return call_gas({
+        "mode": "search",
+        "query": query,
+        "user_id": str(user_id),
+        "use_ai": use_ai
+    })
 
 def find_article(article_num, doc_name=None):
     payload = {"mode": "article", "article": article_num}
@@ -122,6 +137,55 @@ def find_article(article_num, doc_name=None):
 
 def list_docs():
     return call_gas({"mode": "list"})
+
+# ⭐ v17: New API calls
+def record_feedback(user_id, query, document, article, action="click"):
+    """Record user feedback (click, view, share)"""
+    try:
+        return call_gas({
+            "mode": "feedback",
+            "user_id": str(user_id),
+            "query": query,
+            "document": document,
+            "article": article,
+            "action": action
+        }, timeout=15)
+    except Exception as e:
+        logger.error(f"Feedback error: {e}")
+        return {"success": False}
+
+def get_suggestions(partial_query):
+    """Get query suggestions"""
+    try:
+        return call_gas({"mode": "suggestions", "query": partial_query}, timeout=15)
+    except Exception as e:
+        return {"success": False}
+
+def get_related_articles(document, article, count=5):
+    """Get related articles"""
+    try:
+        return call_gas({
+            "mode": "related",
+            "document": document,
+            "article": article,
+            "count": count
+        }, timeout=30)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def get_popular_articles(limit=10):
+    """Get most-clicked articles"""
+    try:
+        return call_gas({"mode": "popular", "limit": limit}, timeout=15)
+    except Exception as e:
+        return {"success": False}
+
+def get_analytics(days=7):
+    """Get analytics dashboard"""
+    try:
+        return call_gas({"mode": "analytics", "days": days}, timeout=30)
+    except Exception as e:
+        return {"success": False}
 
 # ═══════════════════════════════════════════════
 # Sort & Paginate
@@ -262,7 +326,7 @@ def make_progress_bar(current, total, width=15):
     return f"{bar} {percent}%"
 
 # ═══════════════════════════════════════════════
-# Format Preview Mode
+# Format Preview Mode (v17: with AI badge)
 # ═══════════════════════════════════════════════
 def format_preview_mode(data, session, pagination_info=None):
     results = data.get("results", [])
@@ -277,7 +341,12 @@ def format_preview_mode(data, session, pagination_info=None):
 
     query = session.get("query", "")
     msg = f"🔍 <b>ស្វែងរក:</b> <code>{escape_html(query)}</code>\n"
-    msg += f"📊 <b>{total_articles}</b> មាត្រា | <b>{total_docs}</b> ច្បាប់\n"
+    msg += f"📊 <b>{total_articles}</b> មាត្រា | <b>{total_docs}</b> ច្បាប់"
+    
+    # ⭐ v17: AI badge
+    if session.get("ai_reranked"):
+        msg += " | 🤖 <i>AI</i>"
+    msg += "\n"
 
     if pagination_info and pagination_info["total_pages"] > 1:
         bar = make_progress_bar(pagination_info["current_page"], pagination_info["total_pages"])
@@ -304,12 +373,24 @@ def format_preview_mode(data, session, pagination_info=None):
             article = r.get("article", "")
             content = clean_content(r.get("content", ""))
             title, _ = _split_title_and_body(content, article)
+            
+            # ⭐ v17: AI rank badge
+            ai_badge = ""
+            if r.get("ai_rank") and r["ai_rank"] <= 3:
+                ai_badge = f" 🤖#{r['ai_rank']}"
+            
+            # ⭐ v17: Popular badge
+            fb_boost = r.get("feedback_boost", 1.0)
+            popular_badge = ""
+            if fb_boost >= 1.3:
+                popular_badge = " 🔥"
+            
             if title:
-                if len(title) > 45:
-                    title = title[:42] + "..."
-                msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b> - {escape_html(title)}\n"
+                if len(title) > 40:
+                    title = title[:37] + "..."
+                msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b>{ai_badge}{popular_badge} - {escape_html(title)}\n"
             else:
-                msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b>\n"
+                msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b>{ai_badge}{popular_badge}\n"
 
     msg += "\n👆 <i>ចុចប៊ូតុងខាងក្រោមដើម្បីមើលពេញ</i>"
     return msg
@@ -330,6 +411,8 @@ def format_detailed_mode(data, session, pagination_info=None):
 
     msg = f"🔍 <b>ស្វែងរក:</b> <code>{escape_html(session.get('query', ''))}</code>\n"
     msg += f"📊 <b>{total_articles}</b> មាត្រា | <b>{total_docs}</b> ច្បាប់"
+    if session.get("ai_reranked"):
+        msg += " | 🤖"
     if pagination_info:
         msg += f" | 📄 <b>{pagination_info['current_page']}/{pagination_info['total_pages']}</b>"
     msg += "\n━━━━━━━━━━━━━━━━━━━━"
@@ -356,10 +439,20 @@ def format_detailed_mode(data, session, pagination_info=None):
             content = clean_content(r.get("content", ""))
             title, body = _split_title_and_body(content, article)
 
+            # ⭐ v17: badges
+            ai_badge = ""
+            if r.get("ai_rank") and r["ai_rank"] <= 3:
+                ai_badge = f" 🤖#{r['ai_rank']}"
+            
+            fb_boost = r.get("feedback_boost", 1.0)
+            popular_badge = ""
+            if fb_boost >= 1.3:
+                popular_badge = " 🔥"
+
             if article and title:
-                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))} - {escape_html(title)}</b>"
+                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))}{ai_badge}{popular_badge} - {escape_html(title)}</b>"
             elif article:
-                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))}</b>"
+                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))}{ai_badge}{popular_badge}</b>"
 
             if body:
                 formatted_body = format_body_paragraphs(body, indent="    ")
@@ -408,14 +501,14 @@ def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type
     if selected_docs:
         count = len(selected_docs)
         action_row.append(
-            InlineKeyboardButton(f"🔍 ស្វែងរក ({count} ច្បាប់)", callback_data="docsel:confirm")
+            InlineKeyboardButton(f"🔍 ស្វែងរក ({count})", callback_data="docsel:confirm")
         )
     else:
         action_row.append(
-            InlineKeyboardButton("⚠️ សូមជ្រើសរើសច្បាប់", callback_data="docsel:warn")
+            InlineKeyboardButton("⚠️ សូមជ្រើសរើស", callback_data="docsel:warn")
         )
     action_row.append(
-        InlineKeyboardButton("🔍 ស្វែងរកទាំងអស់", callback_data="docsel:skip")
+        InlineKeyboardButton("🔍 ទាំងអស់", callback_data="docsel:skip")
     )
     buttons.append(action_row)
 
@@ -450,12 +543,13 @@ def build_doc_selection_message(query, available_docs, selected_docs=None, searc
     return msg
 
 # ═══════════════════════════════════════════════
-# Navigation Keyboard
+# ⭐ v17: Navigation Keyboard (with Article Actions)
 # ═══════════════════════════════════════════════
 def build_navigation_keyboard(session):
     pagination = paginate_results(session["results"], session["page"])
     buttons = []
 
+    # Row 1: Navigation
     nav_row = []
     if pagination["has_prev"]:
         nav_row.append(InlineKeyboardButton("⬅️ ថយ", callback_data="nav:prev"))
@@ -467,12 +561,32 @@ def build_navigation_keyboard(session):
         nav_row.append(InlineKeyboardButton("បន្ត ➡️", callback_data="nav:next"))
     buttons.append(nav_row)
 
+    # Row 2: View Mode
     mode = session.get("view_mode", "preview")
     if mode == "preview":
         buttons.append([InlineKeyboardButton("👁 មើលពេញ", callback_data="mode:detailed")])
     else:
         buttons.append([InlineKeyboardButton("📋 មើលសង្ខេប", callback_data="mode:preview")])
 
+    # ⭐ v17: Row 3: Article Actions (Related + Share)
+    # Only show if in detailed mode and viewing specific articles
+    if mode == "detailed":
+        current_page_results = pagination["results"]
+        if current_page_results and len(current_page_results) <= 3:
+            # Show related buttons for each article on this page
+            for r in current_page_results:
+                doc = r.get("document", "")
+                article = r.get("article", "")
+                if doc and article:
+                    short_doc = doc[:15] + "..." if len(doc) > 15 else doc
+                    buttons.append([
+                        InlineKeyboardButton(
+                            f"🔗 មាត្រាពាក់ព័ន្ធ - {article}",
+                            callback_data=f"related:{doc[:50]}|{article}"
+                        )
+                    ])
+
+    # Row 4: Filter
     results = session.get("all_results", session["results"])
     categories = set()
     for r in results:
@@ -490,6 +604,7 @@ def build_navigation_keyboard(session):
                 filter_row.append(InlineKeyboardButton("🟢 ផ្សេងៗ", callback_data="filter:other"))
         buttons.append(filter_row)
 
+    # Row 5: Actions
     buttons.append([
         InlineKeyboardButton("📂 ប្តូរច្បាប់", callback_data="action:reselect_docs"),
         InlineKeyboardButton("🔍 ថ្មី", callback_data="action:new_search"),
@@ -512,15 +627,19 @@ def build_start_keyboard():
             InlineKeyboardButton("🏞️ ដីធ្លី", callback_data="quick:ដីធ្លី"),
             InlineKeyboardButton("🚗 ចរាចរណ៍", callback_data="quick:ចរាចរណ៍"),
         ],
+        # ⭐ v17: New buttons
         [
-            InlineKeyboardButton("📚 មើលឯកសារ", callback_data="action:docs"),
+            InlineKeyboardButton("🔥 ពេញនិយម", callback_data="action:popular"),
+            InlineKeyboardButton("📚 ឯកសារ", callback_data="action:docs"),
+        ],
+        [
             InlineKeyboardButton("❓ ជំនួយ", callback_data="action:help"),
         ]
     ]
     return InlineKeyboardMarkup(buttons)
 
 # ═══════════════════════════════════════════════
-# Send Helpers (⭐ FIXED: ប្រើ chat_id ជំនួស update.message)
+# Send Helpers
 # ═══════════════════════════════════════════════
 def smart_split_html(text, max_length=3800):
     if len(text) <= max_length:
@@ -546,14 +665,24 @@ def smart_split_html(text, max_length=3800):
     return [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
 
-async def send_results_to_chat(context_or_bot, chat_id, session):
-    """
-    ⭐ ផ្ញើលទ្ធផលទៅ chat_id ដោយផ្ទាល់ (មិនពឹង update.message)
-    """
+async def send_results_to_chat(context_or_bot, chat_id, session, user_id=None):
+    """⭐ v17: ផ្ញើលទ្ធផល + record view feedback"""
     try:
         pagination = paginate_results(session["results"], session["page"])
         page_data = {"success": True, "results": pagination["results"]}
         view_mode = session.get("view_mode", "preview")
+
+        # ⭐ v17: Record views for detailed mode
+        if user_id and view_mode == "detailed":
+            for r in pagination["results"]:
+                doc = r.get("document", "")
+                article = r.get("article", "")
+                if doc and article:
+                    threading.Thread(
+                        target=record_feedback,
+                        args=(user_id, session.get("query", ""), doc, article, "view"),
+                        daemon=True
+                    ).start()
 
         if view_mode == "preview":
             text = format_preview_mode(page_data, session, pagination)
@@ -582,13 +711,24 @@ async def send_results_to_chat(context_or_bot, chat_id, session):
 
 
 async def send_results_callback(update, session):
-    """
-    ⭐ ផ្ញើលទ្ធផលពី callback (edit message ដែលមានស្រាប់)
-    """
+    """ផ្ញើលទ្ធផលពី callback"""
     try:
+        user_id = update.effective_user.id
         pagination = paginate_results(session["results"], session["page"])
         page_data = {"success": True, "results": pagination["results"]}
         view_mode = session.get("view_mode", "preview")
+
+        # Record views
+        if view_mode == "detailed":
+            for r in pagination["results"]:
+                doc = r.get("document", "")
+                article = r.get("article", "")
+                if doc and article:
+                    threading.Thread(
+                        target=record_feedback,
+                        args=(user_id, session.get("query", ""), doc, article, "view"),
+                        daemon=True
+                    ).start()
 
         if view_mode == "preview":
             text = format_preview_mode(page_data, session, pagination)
@@ -634,38 +774,6 @@ async def send_results_callback(update, session):
         logger.error(f"❌ send_results_callback error: {e}", exc_info=True)
 
 
-async def send_results_message(update, session):
-    """
-    ⭐ ផ្ញើលទ្ធផលពី message (reply to user message)
-    """
-    try:
-        pagination = paginate_results(session["results"], session["page"])
-        page_data = {"success": True, "results": pagination["results"]}
-        view_mode = session.get("view_mode", "preview")
-
-        if view_mode == "preview":
-            text = format_preview_mode(page_data, session, pagination)
-        else:
-            text = format_detailed_mode(page_data, session, pagination)
-
-        keyboard = build_navigation_keyboard(session)
-        parts = smart_split_html(text, 3800)
-
-        for i, part in enumerate(parts):
-            is_last = (i == len(parts) - 1)
-            kb = keyboard if is_last else None
-            prefix = f"📄 <i>(ភាគ {i+1}/{len(parts)})</i>\n\n" if len(parts) > 1 else ""
-
-            await update.message.reply_text(
-                prefix + part, parse_mode=ParseMode.HTML, reply_markup=kb
-            )
-            if not is_last:
-                await asyncio.sleep(0.3)
-
-    except Exception as e:
-        logger.error(f"❌ send_results_message error: {e}", exc_info=True)
-
-
 async def try_recover_session(update, is_callback=True):
     if is_callback:
         target = update.callback_query.message
@@ -678,10 +786,7 @@ async def try_recover_session(update, is_callback=True):
 
     await target.reply_text(
         "⚠️ <b>Session បាត់</b>\n\n"
-        "សូមស្វែងរកម្តងទៀត។\n\n"
-        "💡 ឧទាហរណ៍:\n"
-        "  • វាយ <code>លួច</code>\n"
-        "  • វាយ <code>មាត្រា ៥៥</code>",
+        "សូមស្វែងរកម្តងទៀត។",
         parse_mode=ParseMode.HTML,
         reply_markup=keyboard
     )
@@ -690,9 +795,6 @@ async def try_recover_session(update, is_callback=True):
 # Document Selection Flow
 # ═══════════════════════════════════════════════
 async def start_doc_selection(update, context, query, search_type="search", article_num=None):
-    """
-    ⭐ Show document selection. Works from both message and callback.
-    """
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
@@ -745,17 +847,16 @@ async def start_doc_selection(update, context, query, search_type="search", arti
 
 
 async def execute_keyword_search(update, context, query, doc_filter=None):
-    """
-    ⭐ Execute keyword search. ប្រើ context.bot.send_message ជំនួស update.message
-    """
+    """⭐ v17: Search with AI + user_id"""
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
     status_msg = await context.bot.send_message(
-        chat_id=chat_id, text="🔍 កំពុងស្វែងរក..."
+        chat_id=chat_id, text="🔍 កំពុងស្វែងរក... 🤖 AI"
     )
 
-    data = search_law(query)
+    # ⭐ v17: Pass user_id for tracking
+    data = search_law(query, user_id=user_id, use_ai=True)
     total = data.get("count", 0)
 
     if not data.get("success") or total == 0:
@@ -763,9 +864,20 @@ async def execute_keyword_search(update, context, query, doc_filter=None):
             await status_msg.delete()
         except:
             pass
+        
+        # ⭐ v17: Suggest similar queries
+        suggestions_data = get_suggestions(query)
+        suggestions_text = ""
+        if suggestions_data.get("success") and suggestions_data.get("suggestions"):
+            suggs = suggestions_data["suggestions"][:5]
+            if suggs:
+                suggestions_text = "\n\n💡 <b>សាកសំណួរស្រដៀង:</b>\n"
+                for s in suggs:
+                    suggestions_text += f"  • <code>{escape_html(s['query'])}</code>\n"
+        
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់ <b>{escape_html(query)}</b>\n\n💡 សូមសាកសំណួរផ្សេង",
+            text=f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់ <b>{escape_html(query)}</b>{suggestions_text}",
             parse_mode=ParseMode.HTML
         )
         return
@@ -787,8 +899,7 @@ async def execute_keyword_search(update, context, query, doc_filter=None):
         await context.bot.send_message(
             chat_id=chat_id,
             text=f"🔍 រកមិនឃើញលទ្ធផលក្នុងច្បាប់ដែលបានជ្រើសរើស\n\n"
-                 f"💡 មាន <b>{other_count}</b> លទ្ធផលក្នុងច្បាប់ផ្សេងទៀត\n"
-                 f"សូមសាកជ្រើសរើសច្បាប់ផ្សេង ឬស្វែងរកក្នុងទាំងអស់",
+                 f"💡 មាន <b>{other_count}</b> លទ្ធផលក្នុងច្បាប់ផ្សេងទៀត",
             parse_mode=ParseMode.HTML
         )
         return
@@ -804,7 +915,8 @@ async def execute_keyword_search(update, context, query, doc_filter=None):
         "filter": "all",
         "selected_docs": doc_filter,
         "original_query": query,
-        "search_type": "search"
+        "search_type": "search",
+        "ai_reranked": data.get("ai_reranked", False)
     }
     update_session(user_id, session_data)
 
@@ -813,14 +925,10 @@ async def execute_keyword_search(update, context, query, doc_filter=None):
     except:
         pass
 
-    # ⭐ ប្រើ send_results_to_chat ដែលប្រើ bot.send_message
-    await send_results_to_chat(context.bot, chat_id, USER_SESSIONS[user_id])
+    await send_results_to_chat(context.bot, chat_id, USER_SESSIONS[user_id], user_id=user_id)
 
 
 async def execute_article_search(update, context, article_num, doc_filter=None):
-    """
-    ⭐ Execute article search. ប្រើ context.bot.send_message ជំនួស update.message
-    """
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
@@ -851,22 +959,19 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
                     chat_id=chat_id,
                     text=f"🔍 មាត្រា <b>{escape_html(str(article_num))}</b> "
                          f"រកមិនឃើញក្នុងច្បាប់ដែលបានជ្រើសរើស\n\n"
-                         f"💡 មាត្រានេះមាននៅក្នុង:\n{docs_list}\n\n"
-                         f"សូមសាកជ្រើសរើសច្បាប់ផ្សេង",
+                         f"💡 មាត្រានេះមាននៅក្នុង:\n{docs_list}",
                     parse_mode=ParseMode.HTML
                 )
             else:
                 await context.bot.send_message(
                     chat_id=chat_id,
-                    text=f"🔍 រកមិនឃើញមាត្រា <b>{escape_html(str(article_num))}</b>\n\n"
-                         f"💡 សូមពិនិត្យលេខមាត្រាម្តងទៀត",
+                    text=f"🔍 រកមិនឃើញមាត្រា <b>{escape_html(str(article_num))}</b>",
                     parse_mode=ParseMode.HTML
                 )
         else:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"🔍 រកមិនឃើញមាត្រា <b>{escape_html(str(article_num))}</b>\n\n"
-                     f"💡 សូមពិនិត្យលេខមាត្រាម្តងទៀត",
+                text=f"🔍 រកមិនឃើញមាត្រា <b>{escape_html(str(article_num))}</b>",
                 parse_mode=ParseMode.HTML
             )
         return
@@ -883,19 +988,22 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
             await status_msg.delete()
         except:
             pass
-        all_docs = set(r.get("document", "") for r in all_results)
-        docs_list = "\n".join(f"  • {escape_html(d)}" for d in all_docs)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=f"🔍 មាត្រា <b>{escape_html(str(article_num))}</b> "
-                 f"រកមិនឃើញក្នុងច្បាប់ដែលបានជ្រើសរើស\n\n"
-                 f"💡 មាត្រានេះមាននៅក្នុង:\n{docs_list}",
-            parse_mode=ParseMode.HTML
-        )
         return
 
     if not doc_filter:
         doc_filter = ["all"]
+
+    # ⭐ v17: Record click for article search
+    if filtered_results:
+        for r in filtered_results[:3]:
+            doc = r.get("document", "")
+            art = r.get("article", "")
+            if doc and art:
+                threading.Thread(
+                    target=record_feedback,
+                    args=(user_id, f"មាត្រា {article_num}", doc, art, "click"),
+                    daemon=True
+                ).start()
 
     session_data = {
         "results": filtered_results,
@@ -909,7 +1017,8 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
         "selected_docs": doc_filter,
         "original_query": f"មាត្រា {article_num}",
         "original_article": str(article_num),
-        "search_type": "article"
+        "search_type": "article",
+        "ai_reranked": False
     }
     update_session(user_id, session_data)
 
@@ -918,8 +1027,207 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
     except:
         pass
 
-    # ⭐ ប្រើ send_results_to_chat
-    await send_results_to_chat(context.bot, chat_id, USER_SESSIONS[user_id])
+    await send_results_to_chat(context.bot, chat_id, USER_SESSIONS[user_id], user_id=user_id)
+
+
+# ═══════════════════════════════════════════════
+# ⭐ v17: Related Articles Display
+# ═══════════════════════════════════════════════
+async def show_related_articles(context, chat_id, document, article):
+    """បង្ហាញមាត្រាពាក់ព័ន្ធ"""
+    status_msg = await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"🔗 កំពុងស្វែងរកមាត្រាពាក់ព័ន្ធ..."
+    )
+    
+    data = get_related_articles(document, article, count=5)
+    
+    try:
+        await status_msg.delete()
+    except:
+        pass
+    
+    if not data.get("success"):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"❌ មិនអាចទាញមាត្រាពាក់ព័ន្ធ: {data.get('error', 'Unknown error')}"
+        )
+        return
+    
+    related = data.get("related", [])
+    if not related:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"ℹ️ គ្មានមាត្រាពាក់ព័ន្ធជាមួយ <b>មាត្រា {escape_html(article)}</b> ទេ",
+            parse_mode=ParseMode.HTML
+        )
+        return
+    
+    msg = f"🔗 <b>មាត្រាពាក់ព័ន្ធជាមួយ មាត្រា {escape_html(article)}</b>\n"
+    msg += f"📖 <i>{escape_html(document)}</i>\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    keywords_used = data.get("keywords_used", [])
+    if keywords_used:
+        msg += f"🔑 <b>Keywords:</b> {', '.join(keywords_used[:5])}\n\n"
+    
+    # Buttons for each related article
+    buttons = []
+    for idx, r in enumerate(related):
+        doc = r.get("document", "")
+        art = r.get("article", "")
+        preview = r.get("preview", "")[:150]
+        cat = get_law_category(doc)
+        
+        msg += f"{cat['emoji']} <b>មាត្រា {escape_html(art)}</b> - <i>{escape_html(doc[:30])}</i>\n"
+        msg += f"   <i>{escape_html(preview)}...</i>\n\n"
+        
+        # Button to view this article
+        buttons.append([
+            InlineKeyboardButton(
+                f"📖 មើលមាត្រា {art}",
+                callback_data=f"viewart:{doc[:50]}|{art}"
+            )
+        ])
+    
+    keyboard = InlineKeyboardMarkup(buttons) if buttons else None
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard
+    )
+
+
+# ═══════════════════════════════════════════════
+# ⭐ v17: Popular Articles Display
+# ═══════════════════════════════════════════════
+async def show_popular_articles(context, chat_id):
+    """បង្ហាញមាត្រាពេញនិយម"""
+    status_msg = await context.bot.send_message(
+        chat_id=chat_id, text="🔥 កំពុងទាញមាត្រាពេញនិយម..."
+    )
+    
+    data = get_popular_articles(limit=10)
+    
+    try:
+        await status_msg.delete()
+    except:
+        pass
+    
+    if not data.get("success") or not data.get("articles"):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="ℹ️ មិនទាន់មានទិន្នន័យស្ថិតិទេ។\n\n"
+                 "💡 សូមស្វែងរក និងចុចមាត្រាបន្ថែម"
+        )
+        return
+    
+    articles = data.get("articles", [])
+    msg = "🔥 <b>មាត្រាពេញនិយម TOP 10</b>\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    buttons = []
+    for idx, a in enumerate(articles, 1):
+        doc = a.get("document", "")
+        art = a.get("article", "")
+        clicks = a.get("clicks", 0)
+        cat = get_law_category(doc)
+        
+        rank_emoji = "🥇" if idx == 1 else "🥈" if idx == 2 else "🥉" if idx == 3 else f"#{idx}"
+        msg += f"{rank_emoji} {cat['emoji']} <b>មាត្រា {escape_html(art)}</b>\n"
+        msg += f"    📖 <i>{escape_html(doc)}</i>\n"
+        msg += f"    👁 <i>{int(clicks)} ការមើល</i>\n\n"
+        
+        if idx <= 5:  # Show buttons for top 5
+            buttons.append([
+                InlineKeyboardButton(
+                    f"📖 មាត្រា {art}",
+                    callback_data=f"viewart:{doc[:50]}|{art}"
+                )
+            ])
+    
+    keyboard = InlineKeyboardMarkup(buttons) if buttons else None
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard
+    )
+
+
+# ═══════════════════════════════════════════════
+# ⭐ v17: Analytics Dashboard (Admin only)
+# ═══════════════════════════════════════════════
+async def show_analytics(context, chat_id, user_id, days=7):
+    """បង្ហាញ Analytics (Admin only)"""
+    if ADMIN_IDS and user_id not in ADMIN_IDS:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="⚠️ តែ Admin ប៉ុណ្ណោះអាចមើលបាន"
+        )
+        return
+    
+    status_msg = await context.bot.send_message(
+        chat_id=chat_id, text=f"📊 កំពុងទាញ Analytics ({days} ថ្ងៃ)..."
+    )
+    
+    data = get_analytics(days=days)
+    
+    try:
+        await status_msg.delete()
+    except:
+        pass
+    
+    if not data.get("success"):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"❌ Error: {data.get('error', 'Unknown')}"
+        )
+        return
+    
+    msg = f"📊 <b>Analytics Dashboard</b>\n"
+    msg += f"⏰ <i>រយៈពេល {days} ថ្ងៃចុងក្រោយ</i>\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    msg += f"🔍 <b>ការស្វែងរក:</b> {data.get('total_searches', 0)}\n"
+    msg += f"👥 <b>Users:</b> {data.get('unique_users', 0)}\n"
+    msg += f"👆 <b>Clicks:</b> {data.get('total_clicks', 0)}\n\n"
+    
+    # Top queries
+    top_queries = data.get("top_queries", [])
+    if top_queries:
+        msg += "🔥 <b>សំណួរពេញនិយម TOP 10:</b>\n"
+        for i, q in enumerate(top_queries[:10], 1):
+            msg += f"  {i}. <code>{escape_html(q['query'][:40])}</code> ({q['count']})\n"
+        msg += "\n"
+    
+    # Top documents
+    top_docs = data.get("top_documents", [])
+    if top_docs:
+        msg += "📚 <b>ច្បាប់ពេញនិយម:</b>\n"
+        for d in top_docs[:5]:
+            cat = get_law_category(d['document'])
+            msg += f"  {cat['emoji']} {escape_html(d['document'])} ({d['clicks']})\n"
+    
+    # Buttons for different periods
+    buttons = [
+        [
+            InlineKeyboardButton("📅 ១ថ្ងៃ", callback_data="stats:1"),
+            InlineKeyboardButton("📅 ៧ថ្ងៃ", callback_data="stats:7"),
+            InlineKeyboardButton("📅 ៣០ថ្ងៃ", callback_data="stats:30"),
+        ]
+    ]
+    keyboard = InlineKeyboardMarkup(buttons)
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard
+    )
 
 
 # ═══════════════════════════════════════════════
@@ -938,7 +1246,7 @@ async def process_article_query(update, context, article_num, doc_name=None):
         )
 
 # ═══════════════════════════════════════════════
-# Callback Handler
+# Callback Handler (v17: Enhanced)
 # ═══════════════════════════════════════════════
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -954,6 +1262,41 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"query.answer() failed: {e}")
 
     try:
+        # ═══════════════════════════════════════
+        # ⭐ v17: Related Articles
+        # ═══════════════════════════════════════
+        if data.startswith("related:"):
+            payload = data.split(":", 1)[1]
+            if "|" in payload:
+                doc, article = payload.split("|", 1)
+                await show_related_articles(context, chat_id, doc, article)
+            return
+
+        # ═══════════════════════════════════════
+        # ⭐ v17: View Article (from related/popular)
+        # ═══════════════════════════════════════
+        if data.startswith("viewart:"):
+            payload = data.split(":", 1)[1]
+            if "|" in payload:
+                doc, article = payload.split("|", 1)
+                # Record click
+                threading.Thread(
+                    target=record_feedback,
+                    args=(user_id, f"មាត្រា {article}", doc, article, "click"),
+                    daemon=True
+                ).start()
+                # Execute article search
+                await execute_article_search(update, context, article, doc_filter=[doc])
+            return
+
+        # ═══════════════════════════════════════
+        # ⭐ v17: Analytics Period Switch
+        # ═══════════════════════════════════════
+        if data.startswith("stats:"):
+            days = int(data.split(":")[1])
+            await show_analytics(context, chat_id, user_id, days=days)
+            return
+
         # ═══════════════════════════════════════
         # Document Selection
         # ═══════════════════════════════════════
@@ -1009,7 +1352,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except:
                     pass
 
-                # ⭐ Execute search ដោយប្រើ context
                 if search_type == "article" and pending_article:
                     await execute_article_search(update, context, pending_article, doc_filter=selected_docs)
                 else:
@@ -1101,7 +1443,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
 
         # ═══════════════════════════════════════
-        # Mode
+        # Mode (⭐ v17: Record click when switching to detailed)
         # ═══════════════════════════════════════
         elif data == "mode:detailed":
             session = USER_SESSIONS.get(user_id)
@@ -1111,6 +1453,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             session["view_mode"] = "detailed"
             session["page"] = 0
             update_session(user_id, session)
+            
+            # ⭐ v17: Record clicks for current page
+            pagination = paginate_results(session["results"], 0)
+            for r in pagination["results"]:
+                doc = r.get("document", "")
+                article = r.get("article", "")
+                if doc and article:
+                    threading.Thread(
+                        target=record_feedback,
+                        args=(user_id, session.get("query", ""), doc, article, "click"),
+                        daemon=True
+                    ).start()
+            
             await send_results_callback(update, session)
 
         elif data == "mode:preview":
@@ -1166,8 +1521,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="🔍 <b>សូមវាយសំណួរថ្មី</b>\n\n"
                      "ឧទាហរណ៍:\n"
                      "  • <code>លួច</code> → ស្វែងរកពាក្យគន្លឹះ\n"
-                     "  • <code>មាត្រា ៥៥</code> → រកមាត្រា\n"
-                     "  • <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកក្នុងច្បាប់ជាក់លាក់",
+                     "  • <code>មាត្រា ៥៥</code> → រកមាត្រា",
                 parse_mode=ParseMode.HTML
             )
 
@@ -1180,20 +1534,28 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif data == "action:home":
             await start_from_callback(query)
 
+        # ⭐ v17: Popular articles
+        elif data == "action:popular":
+            await show_popular_articles(context, chat_id)
+
         elif data == "action:help":
             msg = (
-                "📖 <b>ជំនួយ</b>\n"
+                "📖 <b>ជំនួយ Bot v17</b>\n"
                 "━━━━━━━━━━━━━━━━━━━━\n\n"
-                "🔍 <b>ស្វែងរកពាក្យគន្លឹះ:</b>\n"
-                "  <code>លួច</code> → Bot សួរថាចង់រកក្នុងច្បាប់ណា\n\n"
-                "📌 <b>រកមាត្រា:</b>\n"
-                "  <code>មាត្រា ៥៥</code> → Bot សួរថាចង់រកក្នុងច្បាប់ណា\n"
+                "🔍 <b>ស្វែងរក:</b>\n"
+                "  <code>លួច</code> → ស្វែងរកពាក្យ\n"
+                "  <code>មាត្រា ៥៥</code> → រកមាត្រា\n"
                 "  <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
-                "📂 <b>ជ្រើសរើសច្បាប់:</b>\n"
-                "  ✅ ជ្រើស 1 ឬច្រើន\n"
-                "  📚 ឬស្វែងរកទាំងអស់\n\n"
-                "🎨 <b>ពណ៌:</b>\n"
-                "  🔴 ព្រហ្មទណ្ឌ | 🔵 រដ្ឋប្បវេណី | 🟢 ផ្សេងៗ"
+                "🤖 <b>Features ថ្មី:</b>\n"
+                "  🔥 មាត្រាពេញនិយម (ចុច 🔥)\n"
+                "  🔗 មាត្រាពាក់ព័ន្ធ (មើលពេញ)\n"
+                "  🤖 AI តម្រៀបលទ្ធផល\n"
+                "  💡 ការណែនាំសំណួរ\n\n"
+                "🎯 <b>Commands:</b>\n"
+                "  /start - ចាប់ផ្ដើម\n"
+                "  /popular - មាត្រាពេញនិយម\n"
+                "  /docs - បញ្ជីច្បាប់\n"
+                "  /help - ជំនួយ"
             )
             await context.bot.send_message(
                 chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML
@@ -1233,7 +1595,7 @@ async def start_from_callback(query):
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍!\n\n"
+        "សូមស្វាគមន៍! 🤖 AI-Powered\n\n"
         "🔥 <b>ស្វែងរកពេញនិយម:</b>"
     )
     await query.message.reply_text(
@@ -1242,20 +1604,58 @@ async def start_from_callback(query):
     )
 
 # ═══════════════════════════════════════════════
-# Commands
+# ⭐ v17: Inline Query Handler (Suggestions)
+# ═══════════════════════════════════════════════
+async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ដោះស្រាយ inline query សម្រាប់ suggestions"""
+    query = update.inline_query.query.strip()
+    
+    if len(query) < 2:
+        return
+    
+    # Get suggestions
+    data = get_suggestions(query)
+    if not data.get("success"):
+        return
+    
+    suggestions = data.get("suggestions", [])
+    results = []
+    
+    for i, s in enumerate(suggestions[:10]):
+        q = s.get("query", "")
+        count = s.get("count", 0)
+        
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid4()),
+                title=f"🔍 {q}",
+                description=f"ស្វែងរកបានប្រើ {count} ដង" if count > 0 else "សំណួរណែនាំ",
+                input_message_content=InputTextMessageContent(q)
+            )
+        )
+    
+    await update.inline_query.answer(results, cache_time=60)
+
+
+# ═══════════════════════════════════════════════
+# Commands (v17: Enhanced)
 # ═══════════════════════════════════════════════
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍មកកាន់ Bot ស្វែងរកច្បាប់!\n\n"
+        "សូមស្វាគមន៍! 🤖 <i>AI-Powered v17</i>\n\n"
         "📌 <b>របៀបប្រើ:</b>\n"
-        "  • វាយពាក្យគន្លឹះ → ជ្រើសរើសច្បាប់ → មើលលទ្ធផល\n"
-        "  • វាយ <code>មាត្រា ៥៥</code> → ជ្រើសរើសច្បាប់\n"
-        "  • វាយ <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
-        "🔥 <b>ស្វែងរកពេញនិយម:</b>\n"
-        "👇 ចុចប៊ូតុងខាងក្រោម ឬវាយសំណួរផ្ទាល់"
+        "  • វាយពាក្យគន្លឹះ → ជ្រើសរើសច្បាប់\n"
+        "  • វាយ <code>មាត្រា ៥៥</code>\n"
+        "  • វាយ <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code>\n\n"
+        "✨ <b>Features ថ្មី:</b>\n"
+        "  🤖 AI តម្រៀបលទ្ធផលឆ្លាត\n"
+        "  🔥 មាត្រាពេញនិយម\n"
+        "  🔗 មាត្រាពាក់ព័ន្ធ\n"
+        "  💡 ការណែនាំសំណួរ\n\n"
+        "👇 ចុចប៊ូតុងខាងក្រោម"
     )
     await update.message.reply_text(
         msg, parse_mode=ParseMode.HTML,
@@ -1264,15 +1664,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
-        "📖 <b>ជំនួយ</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
-        "🔍 <code>លួច</code> → ជ្រើសរើសច្បាប់ រួចស្វែងរក\n"
-        "📌 <code>មាត្រា ៥៥</code> → ជ្រើសរើសច្បាប់ រួចរកមាត្រា\n"
-        "📌 <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
-        "📂 <b>ជ្រើសរើសច្បាប់:</b>\n"
-        "  អាចជ្រើស 1 ឬច្រើនបាន\n\n"
-        "🎯 <b>ប៊ូតុង:</b>\n"
-        "  👁 មើលពេញ | 📋 សង្ខេប\n"
-        "  📂 ប្តូរច្បាប់ | 🔴🔵🟢 Filter"
+        "📖 <b>ជំនួយ Bot v17</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "🔍 <b>ស្វែងរក:</b>\n"
+        "  <code>លួច</code> → ស្វែងរកពាក្យ\n"
+        "  <code>មាត្រា ៥៥</code> → រកមាត្រា\n"
+        "  <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
+        "🤖 <b>Features:</b>\n"
+        "  🤖 AI តម្រៀបលទ្ធផល\n"
+        "  🔥 មាត្រាពេញនិយម (Top clicks)\n"
+        "  🔗 មាត្រាពាក់ព័ន្ធ (មើលពេញ)\n"
+        "  💡 ការណែនាំសំណួរ\n\n"
+        "🎯 <b>Commands:</b>\n"
+        "  /start - ចាប់ផ្ដើម\n"
+        "  /popular - មាត្រាពេញនិយម\n"
+        "  /docs - បញ្ជីច្បាប់\n"
+        "  /clear - លុប session\n"
+        "  /article ៥ - រកមាត្រា\n"
+        "  /stats - Analytics (Admin)"
     )
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
@@ -1304,14 +1713,26 @@ async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not args:
         await update.message.reply_text(
             "📌 <b>របៀបប្រើ:</b>\n"
-            "  <code>/article ៥៥</code> → ជ្រើសរើសច្បាប់\n"
-            "  <code>/article ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់",
+            "  <code>/article ៥៥</code>\n"
+            "  <code>/article ៥ ព្រហ្មទណ្ឌ</code>",
             parse_mode=ParseMode.HTML
         )
         return
     article_num = args[0]
     doc_name = " ".join(args[1:]) if len(args) > 1 else None
     await process_article_query(update, context, article_num, doc_name)
+
+# ⭐ v17: New Commands
+async def popular_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """បង្ហាញមាត្រាពេញនិយម"""
+    await show_popular_articles(context, update.effective_chat.id)
+
+async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """បង្ហាញ Analytics (Admin only)"""
+    days = 7
+    if context.args and context.args[0].isdigit():
+        days = int(context.args[0])
+    await show_analytics(context, update.effective_chat.id, update.effective_user.id, days=days)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text.strip()
@@ -1331,7 +1752,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b"Bot v16.2 running")
+        self.wfile.write(b"Bot v17.0 running - AI Powered")
     def log_message(self, format, *args):
         return
 
@@ -1348,19 +1769,27 @@ def main():
         return
 
     logger.info("=" * 50)
-    logger.info("🤖 Bot v16.2 (Fixed: callback send)")
+    logger.info("🤖 Bot v17.0 (AI + Learning + Analytics)")
+    logger.info(f"📊 Admin IDs: {ADMIN_IDS}")
     logger.info("=" * 50)
 
     load_sessions()
     threading.Thread(target=run_http_server, daemon=True).start()
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+    # Commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("docs", docs_cmd))
     app.add_handler(CommandHandler("article", article_cmd))
     app.add_handler(CommandHandler("clear", clear_cmd))
+    app.add_handler(CommandHandler("popular", popular_cmd))
+    app.add_handler(CommandHandler("stats", stats_cmd))
+    
+    # Callbacks & Messages
     app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(InlineQueryHandler(inline_query_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info("🚀 Starting polling...")
@@ -1368,45 +1797,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# ═══════════════════════════════════════════════
-# v16: New API calls
-# ═══════════════════════════════════════════════
-def record_feedback(user_id, query, document, article, action="click"):
-    return call_gas({
-        "mode": "feedback",
-        "user_id": str(user_id),
-        "query": query,
-        "document": document,
-        "article": article,
-        "action": action
-    })
-
-def get_suggestions(partial_query):
-    return call_gas({
-        "mode": "suggestions",
-        "query": partial_query
-    })
-
-def get_related_articles(document, article, count=5):
-    return call_gas({
-        "mode": "related",
-        "document": document,
-        "article": article,
-        "count": count
-    })
-
-def get_popular_articles(limit=10):
-    return call_gas({
-        "mode": "popular",
-        "limit": limit
-    })
-
-# Modify search_law to include user_id
-def search_law(query, user_id="anonymous", use_ai=True):
-    return call_gas({
-        "mode": "search",
-        "query": query,
-        "user_id": str(user_id),
-        "use_ai": use_ai
-    })
