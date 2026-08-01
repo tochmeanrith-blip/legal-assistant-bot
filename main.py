@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 USER_SESSIONS = {}
 
 # ═══════════════════════════════════════════════
-# ⭐ v17.1: Callback Data Registry (fix Button_data_invalid)
+# Callback Data Registry (fix Button_data_invalid)
 # ═══════════════════════════════════════════════
 CALLBACK_REGISTRY = {}
 CALLBACK_COUNTER = 0
@@ -125,6 +125,74 @@ def group_results_by_document(results):
     return groups
 
 # ═══════════════════════════════════════════════
+# ⭐ v17.4: Sort Documents by Priority
+# ═══════════════════════════════════════════════
+def get_doc_priority(doc_name):
+    """
+    Priority order:
+    1. ក្រមព្រហ្មទណ្ឌ (Criminal Code)
+    2. ក្រមនីតិវិធីព្រហ្មទណ្ឌ (Criminal Procedure)
+    3. ក្រមរដ្ឋប្បវេណី (Civil Code)
+    4. ក្រមនីតិវិធីរដ្ឋប្បវេណី (Civil Procedure)
+    5. Other codes (ក្រម...)
+    10+ Specific laws
+    50+ Other laws (ច្បាប់...)
+    100 Everything else
+    """
+    if not doc_name:
+        return 999
+    
+    # ⭐ ORDER: 1, 2, 3, 4 (critical!)
+    if "នីតិវិធីព្រហ្មទណ្ឌ" in doc_name:
+        return 2
+    if "ព្រហ្មទណ្ឌ" in doc_name or "ព្រហ្មទណ្ឍ" in doc_name:
+        return 1
+    if "នីតិវិធីរដ្ឋប្បវេណី" in doc_name:
+        return 4
+    if "រដ្ឋប្បវេណី" in doc_name:
+        return 3
+    
+    # Other codes
+    if doc_name.startswith("ក្រម"):
+        return 5
+    
+    # Specific important laws
+    if "អនីតិជន" in doc_name:
+        return 10
+    if "ការងារ" in doc_name:
+        return 11
+    if "គ្រួសារ" in doc_name or "អាពាហ៍" in doc_name:
+        return 12
+    if "ដីធ្លី" in doc_name:
+        return 13
+    if "ចរាចរណ៍" in doc_name:
+        return 14
+    if "ពាណិជ្ជកម្ម" in doc_name:
+        return 15
+    if "បរិស្ថាន" in doc_name:
+        return 16
+    
+    # Other laws
+    if doc_name.startswith("ច្បាប់"):
+        return 50
+    
+    return 100
+
+
+def sort_documents_by_priority(docs):
+    """Sort documents by priority. Accepts list of strings or dicts."""
+    def sort_key(doc):
+        if isinstance(doc, str):
+            name = doc
+        elif isinstance(doc, dict):
+            name = doc.get("name", "")
+        else:
+            name = str(doc)
+        return (get_doc_priority(name), name)
+    
+    return sorted(docs, key=sort_key)
+
+# ═══════════════════════════════════════════════
 # API Calls
 # ═══════════════════════════════════════════════
 def call_gas(payload, timeout=90):
@@ -170,15 +238,6 @@ def get_suggestions(partial_query):
     except:
         return {"success": False}
 
-def get_related_articles(document, article, count=5):
-    try:
-        return call_gas({
-            "mode": "related", "document": document,
-            "article": article, "count": count
-        }, timeout=30)
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
 def get_popular_articles(limit=10):
     try:
         return call_gas({"mode": "popular", "limit": limit}, timeout=15)
@@ -203,10 +262,11 @@ def sort_results_by_article(results):
         doc = r.get("document", "")
         article = r.get("article", "")
         if not article:
-            return (doc, 999999)
+            return (get_doc_priority(doc), doc, 999999)
         arabic = khmer_to_arabic_num(article)
         match = re.search(r'\d+', arabic)
-        return (doc, int(match.group()) if match else 999999)
+        # ⭐ v17.4: Sort by priority first, then doc name, then article
+        return (get_doc_priority(doc), doc, int(match.group()) if match else 999999)
     return sorted(results, key=key_fn)
 
 def paginate_results(results, page=0, per_page=RESULTS_PER_PAGE):
@@ -357,12 +417,18 @@ def format_preview_mode(data, session, pagination_info=None):
     filter_active = session.get("filter", "all")
     if filter_active == "all" and total_docs > 1:
         msg += "\n📚 <b>ច្បាប់ទាំងអស់:</b>\n"
-        for doc_name, doc_results in all_groups.items():
+        # ⭐ v17.4: Sort by priority
+        sorted_doc_names = sort_documents_by_priority(list(all_groups.keys()))
+        for doc_name in sorted_doc_names:
+            doc_results = all_groups[doc_name]
             cat = get_law_category(doc_name)
             in_page = "👁" if doc_name in page_groups else ""
             msg += f"  {cat['emoji']} {escape_html(doc_name)} ({len(doc_results)}) {in_page}\n"
 
-    for doc_name, doc_results in page_groups.items():
+    # ⭐ v17.4: Sort page groups by priority
+    sorted_page_docs = sort_documents_by_priority(list(page_groups.keys()))
+    for doc_name in sorted_page_docs:
+        doc_results = page_groups[doc_name]
         cat = get_law_category(doc_name)
         msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b>\n"
         for r in doc_results:
@@ -411,9 +477,11 @@ def format_detailed_mode(data, session, pagination_info=None):
         msg += f"\n📂 <b>ស្វែងរកក្នុង:</b> {len(selected_docs)} ច្បាប់"
 
     page_groups = group_results_by_document(results)
-    doc_list = list(page_groups.keys())
+    # ⭐ v17.4: Sort by priority
+    sorted_page_docs = sort_documents_by_priority(list(page_groups.keys()))
 
-    for doc_idx, (doc_name, doc_results) in enumerate(page_groups.items()):
+    for doc_idx, doc_name in enumerate(sorted_page_docs):
+        doc_results = page_groups[doc_name]
         cat = get_law_category(doc_name)
         total_in_doc = len(all_groups.get(doc_name, []))
         current_in_page = len(doc_results)
@@ -449,76 +517,100 @@ def format_detailed_mode(data, session, pagination_info=None):
             if r_idx < len(doc_results) - 1:
                 msg += "\n▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
 
-        if doc_idx < len(doc_list) - 1:
+        if doc_idx < len(sorted_page_docs) - 1:
             msg += "\n━━━━━━━━━━━━━━━━━━━━"
 
     return msg
 
 # ═══════════════════════════════════════════════
-# Keyboards
+# ⭐ v17.4: Document Selection Keyboard (with numbers, priority sort)
 # ═══════════════════════════════════════════════
 def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type="search"):
     if selected_docs is None:
         selected_docs = []
     buttons = []
 
+    # Header
     if len(selected_docs) == len(available_docs) and len(available_docs) > 0:
-        buttons.append([InlineKeyboardButton("☑️ បានជ្រើសទាំងអស់ — ចុចដើម្បីដកចេញ", callback_data="docsel:none")])
+        buttons.append([
+            InlineKeyboardButton("☑️ ដកជម្រើសទាំងអស់", callback_data="docsel:none")
+        ])
     else:
-        buttons.append([InlineKeyboardButton("📚 ជ្រើសរើសទាំងអស់", callback_data="docsel:all")])
+        buttons.append([
+            InlineKeyboardButton("📋 ជ្រើសរើសទាំងអស់", callback_data="docsel:all")
+        ])
 
+    # ⭐ v17.4: Documents with Khmer numbers
+    khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
+                     "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
+    
     for idx, doc_name in enumerate(available_docs):
-        cat = get_law_category(doc_name)
         is_selected = doc_name in selected_docs
         check = "✅" if is_selected else "⬜"
-        short_name = doc_name if len(doc_name) <= 30 else doc_name[:27] + "..."
+        num = khmer_numbers[idx] if idx < len(khmer_numbers) else str(idx + 1)
+        
         buttons.append([
             InlineKeyboardButton(
-                f"{check} {cat['emoji']} {cat['icon']} {short_name}",
+                f"{check} {num}. {doc_name}",
                 callback_data=f"docsel:toggle:{idx}"
             )
         ])
 
+    # Actions
     action_row = []
     if selected_docs:
-        action_row.append(InlineKeyboardButton(f"🔍 ស្វែងរក ({len(selected_docs)})", callback_data="docsel:confirm"))
+        action_row.append(
+            InlineKeyboardButton(f"🔍 ស្វែងរក ({len(selected_docs)})", callback_data="docsel:confirm")
+        )
     else:
-        action_row.append(InlineKeyboardButton("⚠️ សូមជ្រើសរើស", callback_data="docsel:warn"))
-    action_row.append(InlineKeyboardButton("🔍 ទាំងអស់", callback_data="docsel:skip"))
+        action_row.append(
+            InlineKeyboardButton("សូមជ្រើសរើសច្បាប់", callback_data="docsel:warn")
+        )
+    action_row.append(
+        InlineKeyboardButton("ស្វែងរកទាំងអស់", callback_data="docsel:skip")
+    )
     buttons.append(action_row)
+
     buttons.append([InlineKeyboardButton("❌ បោះបង់", callback_data="docsel:cancel")])
 
     return InlineKeyboardMarkup(buttons)
+
 
 def build_doc_selection_message(query, available_docs, selected_docs=None, search_type="search"):
     if selected_docs is None:
         selected_docs = []
 
     if search_type == "article":
-        msg = f"📂 <b>ជ្រើសរើសច្បាប់ដើម្បីរកមាត្រា</b>\n"
+        msg = "📂 <b>ជ្រើសរើសច្បាប់ដើម្បីរកមាត្រា</b>\n"
     else:
-        msg = f"📂 <b>ជ្រើសរើសច្បាប់ដើម្បីស្វែងរក</b>\n"
+        msg = "📂 <b>ជ្រើសរើសច្បាប់ដើម្បីស្វែងរក</b>\n"
 
-    msg += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-    msg += f"🔍 សំណួរ: <code>{escape_html(query)}</code>\n\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    msg += f"🔍 <b>សំណួរ:</b> <code>{escape_html(query)}</code>\n\n"
 
     if selected_docs:
         msg += f"✅ <b>បានជ្រើសរើស {len(selected_docs)}/{len(available_docs)} ច្បាប់:</b>\n"
-        for doc in selected_docs:
-            cat = get_law_category(doc)
-            msg += f"  {cat['emoji']} {cat['icon']} {escape_html(doc)}\n"
+        # ⭐ v17.4: Show selected in priority order
+        sorted_selected = sort_documents_by_priority(selected_docs)
+        khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០"]
+        for i, doc in enumerate(sorted_selected):
+            num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
+            msg += f"   {num}. {escape_html(doc)}\n"
     else:
         msg += "⬜ <i>មិនទាន់បានជ្រើសរើសច្បាប់ទេ</i>\n"
 
-    msg += f"\n💡 <i>ចុចលើច្បាប់ដើម្បីជ្រើសរើស/ដកចេញ</i>\n"
-    msg += f"<i>អាចជ្រើសរើសច្បាប់ 1 ឬច្រើនបាន</i>"
+    msg += "\n💡 <i>ចុចលើច្បាប់ដើម្បីជ្រើសរើស</i>\n"
+    msg += "<i>អាចជ្រើសរើសច្បាប់ 1 ឬច្រើនបាន</i>"
     return msg
 
-# ⭐ v17.1: Navigation Keyboard (FIXED with short IDs)
+# ═══════════════════════════════════════════════
+# ⭐ v17.4: Navigation Keyboard (NO RELATED BUTTONS)
+# ═══════════════════════════════════════════════
 def build_navigation_keyboard(session):
     pagination = paginate_results(session["results"], session["page"])
     buttons = []
 
+    # Row 1: Navigation
     nav_row = []
     if pagination["has_prev"]:
         nav_row.append(InlineKeyboardButton("⬅️ ថយ", callback_data="nav:prev"))
@@ -530,28 +622,16 @@ def build_navigation_keyboard(session):
         nav_row.append(InlineKeyboardButton("បន្ត ➡️", callback_data="nav:next"))
     buttons.append(nav_row)
 
+    # Row 2: View Mode
     mode = session.get("view_mode", "preview")
     if mode == "preview":
         buttons.append([InlineKeyboardButton("👁 មើលពេញ", callback_data="mode:detailed")])
     else:
         buttons.append([InlineKeyboardButton("📋 មើលសង្ខេប", callback_data="mode:preview")])
 
-    # ⭐ v17.1: Related buttons using SHORT IDs
-    if mode == "detailed":
-        current_page_results = pagination["results"]
-        if current_page_results and len(current_page_results) <= 3:
-            for r in current_page_results:
-                doc = r.get("document", "")
-                article = r.get("article", "")
-                if doc and article:
-                    short_id = register_callback_data(doc, article)
-                    buttons.append([
-                        InlineKeyboardButton(
-                            f"🔗 មាត្រាពាក់ព័ន្ធ - {article}",
-                            callback_data=f"related:{short_id}"
-                        )
-                    ])
+    # ⭐ v17.4: REMOVED "🔗 មាត្រាពាក់ព័ន្ធ" buttons
 
+    # Filter
     results = session.get("all_results", session["results"])
     categories = set()
     for r in results:
@@ -569,6 +649,7 @@ def build_navigation_keyboard(session):
                 filter_row.append(InlineKeyboardButton("🟢 ផ្សេងៗ", callback_data="filter:other"))
         buttons.append(filter_row)
 
+    # Actions
     buttons.append([
         InlineKeyboardButton("📂 ប្តូរច្បាប់", callback_data="action:reselect_docs"),
         InlineKeyboardButton("🔍 ថ្មី", callback_data="action:new_search"),
@@ -727,7 +808,7 @@ async def try_recover_session(update, is_callback=True):
     )
 
 # ═══════════════════════════════════════════════
-# Document Selection Flow
+# ⭐ v17.4: Document Selection Flow (with priority sort)
 # ═══════════════════════════════════════════════
 async def start_doc_selection(update, context, query, search_type="search", article_num=None):
     user_id = update.effective_user.id
@@ -749,7 +830,9 @@ async def start_doc_selection(update, context, query, search_type="search", arti
             await execute_keyword_search(update, context, query, doc_filter=None)
         return
 
+    # ⭐ v17.4: Sort by priority
     available_docs = [d["name"] for d in docs_data.get("documents", [])]
+    available_docs = sort_documents_by_priority(available_docs)
 
     session_data = {
         "pending_query": query, "pending_article": article_num,
@@ -904,53 +987,7 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
 
 
 # ═══════════════════════════════════════════════
-# ⭐ v17.1: Related Articles (FIXED)
-# ═══════════════════════════════════════════════
-async def show_related_articles(context, chat_id, document, article):
-    status_msg = await context.bot.send_message(chat_id=chat_id, text=f"🔗 កំពុងស្វែងរកមាត្រាពាក់ព័ន្ធ...")
-    data = get_related_articles(document, article, count=5)
-    try:
-        await status_msg.delete()
-    except:
-        pass
-    
-    if not data.get("success"):
-        await context.bot.send_message(chat_id=chat_id, text=f"❌ Error: {data.get('error', 'Unknown')}")
-        return
-    
-    related = data.get("related", [])
-    if not related:
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=f"ℹ️ គ្មានមាត្រាពាក់ព័ន្ធជាមួយ <b>មាត្រា {escape_html(article)}</b>",
-            parse_mode=ParseMode.HTML
-        )
-        return
-    
-    msg = f"🔗 <b>មាត្រាពាក់ព័ន្ធជាមួយ មាត្រា {escape_html(article)}</b>\n"
-    msg += f"📖 <i>{escape_html(document)}</i>\n"
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    buttons = []
-    for r in related:
-        doc = r.get("document", "")
-        art = r.get("article", "")
-        preview = r.get("preview", "")[:150]
-        cat = get_law_category(doc)
-        
-        msg += f"{cat['emoji']} <b>មាត្រា {escape_html(art)}</b> - <i>{escape_html(doc[:30])}</i>\n"
-        msg += f"   <i>{escape_html(preview)}...</i>\n\n"
-        
-        # ⭐ Short ID
-        short_id = register_callback_data(doc, art)
-        buttons.append([InlineKeyboardButton(f"📖 មើលមាត្រា {art}", callback_data=f"viewart:{short_id}")])
-    
-    keyboard = InlineKeyboardMarkup(buttons) if buttons else None
-    await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-
-
-# ═══════════════════════════════════════════════
-# ⭐ v17.1: Popular Articles (FIXED)
+# ⭐ v17.4: Popular Articles (with priority sort)
 # ═══════════════════════════════════════════════
 async def show_popular_articles(context, chat_id):
     status_msg = await context.bot.send_message(chat_id=chat_id, text="🔥 កំពុងទាញ...")
@@ -1050,7 +1087,7 @@ async def process_article_query(update, context, article_num, doc_name=None):
         )
 
 # ═══════════════════════════════════════════════
-# ⭐ v17.1: Callback Handler (FIXED)
+# ⭐ v17.4: Callback Handler (REMOVED related handler)
 # ═══════════════════════════════════════════════
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1066,20 +1103,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"query.answer() failed: {e}")
 
     try:
-        # ⭐ v17.1: Related Articles (SHORT ID)
-        if data.startswith("related:"):
-            short_id = data.split(":", 1)[1]
-            cb_data = get_callback_data(short_id)
-            doc = cb_data.get("doc")
-            article = cb_data.get("article")
-            
-            if doc and article:
-                await show_related_articles(context, chat_id, doc, article)
-            else:
-                await query.answer("⚠️ ទិន្នន័យបានផុតកំណត់", show_alert=True)
-            return
+        # ⭐ v17.4: REMOVED "related:" handler
 
-        # ⭐ v17.1: View Article (SHORT ID)
+        # View Article (from popular)
         if data.startswith("viewart:"):
             short_id = data.split(":", 1)[1]
             cb_data = get_callback_data(short_id)
@@ -1306,13 +1332,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await show_popular_articles(context, chat_id)
         elif data == "action:help":
             msg = (
-                "📖 <b>ជំនួយ Bot v17.1</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+                "📖 <b>ជំនួយ Bot v17.4</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
                 "🔍 <code>លួច</code> → ស្វែងរក\n"
                 "📌 <code>មាត្រា ៥៥</code> → រកមាត្រា\n"
                 "📌 <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
                 "🤖 <b>Features:</b>\n"
                 "  🔥 មាត្រាពេញនិយម\n"
-                "  🔗 មាត្រាពាក់ព័ន្ធ\n"
                 "  🤖 AI តម្រៀបលទ្ធផល\n\n"
                 "🎯 <b>Commands:</b>\n"
                 "  /start /popular /docs /help"
@@ -1329,11 +1354,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(chat_id=chat_id, text=f"❌ {docs_data.get('error')}")
                 return
             docs = docs_data.get("documents", [])
-            msg = f"📚 <b>ឯកសារ {len(docs)}៖</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
-            for d in docs:
-                cat = get_law_category(d['name'])
-                msg += f"{cat['emoji']} {cat['icon']} <b>{escape_html(d['name'])}</b>\n"
-                msg += f"   <i>{d['size']:,} តួអក្សរ</i>\n\n"
+            
+            # ⭐ v17.4: Sort by priority
+            docs_sorted = sort_documents_by_priority(docs)
+            
+            msg = f"📚 <b>ឯកសារច្បាប់ទាំងអស់ ({len(docs_sorted)}):</b>\n"
+            msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
+                             "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
+            
+            for i, d in enumerate(docs_sorted):
+                num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
+                msg += f"<b>{num}.</b> {escape_html(d['name'])}\n"
+                msg += f"     <i>{d['size']:,} តួអក្សរ</i>\n\n"
+            
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
         else:
             logger.warning(f"Unknown callback: {data}")
@@ -1347,7 +1382,7 @@ async def start_from_callback(query):
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍! 🤖 AI-Powered v17.1"
+        "សូមស្វាគមន៍! 🤖 AI-Powered v17.4"
     )
     await query.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=build_start_keyboard())
 
@@ -1360,21 +1395,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍! 🤖 <i>v17.1</i>\n\n"
+        "សូមស្វាគមន៍! 🤖 <i>v17.4</i>\n\n"
         "📌 <b>របៀបប្រើ:</b>\n"
         "  • វាយពាក្យគន្លឹះ\n"
         "  • វាយ <code>មាត្រា ៥៥</code>\n"
         "  • វាយ <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code>\n\n"
         "✨ <b>Features:</b>\n"
         "  🤖 AI Rerank\n"
-        "  🔥 មាត្រាពេញនិយម\n"
-        "  🔗 មាត្រាពាក់ព័ន្ធ"
+        "  🔥 មាត្រាពេញនិយម"
     )
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=build_start_keyboard())
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
-        "📖 <b>ជំនួយ v17.1</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📖 <b>ជំនួយ v17.4</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
         "🔍 <code>លួច</code> → ស្វែងរក\n"
         "📌 <code>មាត្រា ៥៥</code> → រកមាត្រា\n\n"
         "🎯 <b>Commands:</b>\n"
@@ -1385,7 +1419,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def clear_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     USER_SESSIONS.pop(update.effective_user.id, None)
     save_sessions()
-    CALLBACK_REGISTRY.clear()  # ⭐ v17.1: Also clear callback registry
+    CALLBACK_REGISTRY.clear()
     await update.message.reply_text("✅ លុប session")
 
 async def docs_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1398,12 +1432,23 @@ async def docs_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not data.get("success"):
         await update.message.reply_text(f"❌ {data.get('error')}")
         return
+    
     docs = data.get("documents", [])
-    msg = f"📚 <b>ឯកសារ {len(docs)}៖</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
-    for d in docs:
-        cat = get_law_category(d['name'])
-        msg += f"{cat['emoji']} {cat['icon']} <b>{escape_html(d['name'])}</b>\n"
-        msg += f"   <i>{d['size']:,} តួអក្សរ</i>\n\n"
+    
+    # ⭐ v17.4: Sort by priority
+    docs_sorted = sort_documents_by_priority(docs)
+    
+    msg = f"📚 <b>ឯកសារច្បាប់ទាំងអស់ ({len(docs_sorted)}):</b>\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
+                     "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
+    
+    for i, d in enumerate(docs_sorted):
+        num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
+        msg += f"<b>{num}.</b> {escape_html(d['name'])}\n"
+        msg += f"     <i>{d['size']:,} តួអក្សរ</i>\n\n"
+    
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1431,7 +1476,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text.strip()
     logger.info(f"📨 Message: '{query}'")
     
-    # ⭐ v17.1: Better regex - support both with/without space
     article_match = re.match(r'^មាត្រា\s*([0-9០-៩]+)\s*(.*)$', query)
     if article_match:
         article_num = article_match.group(1)
@@ -1450,7 +1494,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b"Bot v17.1 running")
+        self.wfile.write(b"Bot v17.4 running")
     def log_message(self, format, *args):
         return
 
@@ -1467,7 +1511,7 @@ def main():
         return
 
     logger.info("=" * 50)
-    logger.info("🤖 Bot v17.1 (Fixed Button_data_invalid)")
+    logger.info("🤖 Bot v17.4 (Priority Sort, No Related)")
     logger.info(f"📊 Admin IDs: {ADMIN_IDS}")
     logger.info("=" * 50)
 
