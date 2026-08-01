@@ -1368,3 +1368,45 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ═══════════════════════════════════════════════
+# v16: New API calls
+# ═══════════════════════════════════════════════
+def record_feedback(user_id, query, document, article, action="click"):
+    return call_gas({
+        "mode": "feedback",
+        "user_id": str(user_id),
+        "query": query,
+        "document": document,
+        "article": article,
+        "action": action
+    })
+
+def get_suggestions(partial_query):
+    return call_gas({
+        "mode": "suggestions",
+        "query": partial_query
+    })
+
+def get_related_articles(document, article, count=5):
+    return call_gas({
+        "mode": "related",
+        "document": document,
+        "article": article,
+        "count": count
+    })
+
+def get_popular_articles(limit=10):
+    return call_gas({
+        "mode": "popular",
+        "limit": limit
+    })
+
+# Modify search_law to include user_id
+def search_law(query, user_id="anonymous", use_ai=True):
+    return call_gas({
+        "mode": "search",
+        "query": query,
+        "user_id": str(user_id),
+        "use_ai": use_ai
+    })
