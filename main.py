@@ -17,28 +17,13 @@ from telegram.ext import (
     filters, ContextTypes, CallbackQueryHandler
 )
 
-# ⭐ PDF Libraries
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm, mm
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, PageBreak,
-    Table, TableStyle, Image, HRFlowable, KeepTogether
-)
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
-
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GAS_URL = os.getenv("GAS_URL")
 
 RESULTS_PER_PAGE = 5
-SESSIONS_FILE = "user_sessions.json"  # ⭐ Persistent storage
-FONTS_DIR = "fonts"
+SESSIONS_FILE = "user_sessions.json"
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -50,16 +35,14 @@ USER_SESSIONS = {}
 
 
 # ═══════════════════════════════════════════════
-# ⭐ NEW: Session Persistence
+# Session Persistence
 # ═══════════════════════════════════════════════
 def load_sessions():
-    """Load sessions ពី file ពេល bot ចាប់ផ្តើម"""
     global USER_SESSIONS
     try:
         if os.path.exists(SESSIONS_FILE):
             with open(SESSIONS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Convert string keys back to int
                 USER_SESSIONS = {int(k): v for k, v in data.items()}
                 logger.info(f"✅ Loaded {len(USER_SESSIONS)} sessions from file")
         else:
@@ -70,45 +53,17 @@ def load_sessions():
 
 
 def save_sessions():
-    """Save sessions ទៅ file"""
     try:
         with open(SESSIONS_FILE, "w", encoding="utf-8") as f:
-            # Convert int keys to string for JSON
             data = {str(k): v for k, v in USER_SESSIONS.items()}
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info(f"💾 Saved {len(USER_SESSIONS)} sessions")
     except Exception as e:
         logger.error(f"❌ Save sessions error: {e}")
 
 
 def update_session(user_id, session_data):
-    """Update + save session"""
     USER_SESSIONS[user_id] = session_data
     save_sessions()
-
-
-# ═══════════════════════════════════════════════
-# ⭐ NEW: PDF Font Registration
-# ═══════════════════════════════════════════════
-def register_khmer_fonts():
-    """Register Khmer fonts for PDF"""
-    try:
-        khmer_regular = os.path.join(FONTS_DIR, "KhmerOS.ttf")
-        khmer_bold = os.path.join(FONTS_DIR, "KhmerOSMuol.ttf")
-        
-        if os.path.exists(khmer_regular):
-            pdfmetrics.registerFont(TTFont("KhmerOS", khmer_regular))
-            logger.info("✅ Registered KhmerOS font")
-        else:
-            logger.warning(f"⚠️ Font not found: {khmer_regular}")
-        
-        if os.path.exists(khmer_bold):
-            pdfmetrics.registerFont(TTFont("KhmerOSMuol", khmer_bold))
-            logger.info("✅ Registered KhmerOSMuol font")
-        else:
-            logger.warning(f"⚠️ Font not found: {khmer_bold}")
-    except Exception as e:
-        logger.error(f"❌ Font registration error: {e}")
 
 
 # ═══════════════════════════════════════════════
@@ -116,24 +71,28 @@ def register_khmer_fonts():
 # ═══════════════════════════════════════════════
 def get_law_category(doc_name):
     if not doc_name:
-        return {"category": "other", "emoji": "🟢", "icon": "📄", "label": "ច្បាប់", "color": colors.HexColor("#10B981")}
+        return {"category": "other", "emoji": "🟢", "icon": "📄", "label": "ច្បាប់"}
     
     if "នីតិវិធីព្រហ្មទណ្ឌ" in doc_name:
-        return {"category": "criminal", "emoji": "🔴", "icon": "👮", "label": "នីតិវិធីព្រហ្មទណ្ឌ", "color": colors.HexColor("#DC2626")}
+        return {"category": "criminal", "emoji": "🔴", "icon": "👮", "label": "នីតិវិធីព្រហ្មទណ្ឌ"}
     if "ព្រហ្មទណ្ឌ" in doc_name or "ព្រហ្មទណ្ឍ" in doc_name:
-        return {"category": "criminal", "emoji": "🔴", "icon": "⚖️", "label": "ព្រហ្មទណ្ឌ", "color": colors.HexColor("#DC2626")}
+        return {"category": "criminal", "emoji": "🔴", "icon": "⚖️", "label": "ព្រហ្មទណ្ឌ"}
     if "នីតិវិធីរដ្ឋប្បវេណី" in doc_name:
-        return {"category": "civil", "emoji": "🔵", "icon": "⚖️", "label": "នីតិវិធីរដ្ឋប្បវេណី", "color": colors.HexColor("#2563EB")}
+        return {"category": "civil", "emoji": "🔵", "icon": "⚖️", "label": "នីតិវិធីរដ្ឋប្បវេណី"}
     if "រដ្ឋប្បវេណី" in doc_name:
-        return {"category": "civil", "emoji": "🔵", "icon": "📜", "label": "រដ្ឋប្បវេណី", "color": colors.HexColor("#2563EB")}
+        return {"category": "civil", "emoji": "🔵", "icon": "📜", "label": "រដ្ឋប្បវេណី"}
     if "ការងារ" in doc_name:
-        return {"category": "other", "emoji": "🟢", "icon": "💼", "label": "ការងារ", "color": colors.HexColor("#059669")}
+        return {"category": "other", "emoji": "🟢", "icon": "💼", "label": "ការងារ"}
     if "គ្រួសារ" in doc_name or "អាពាហ៍" in doc_name:
-        return {"category": "other", "emoji": "🟢", "icon": "👨‍👩‍👧", "label": "គ្រួសារ", "color": colors.HexColor("#059669")}
+        return {"category": "other", "emoji": "🟢", "icon": "👨‍👩‍👧", "label": "គ្រួសារ"}
     if "ចរាចរណ៍" in doc_name:
-        return {"category": "other", "emoji": "🟢", "icon": "🚗", "label": "ចរាចរណ៍", "color": colors.HexColor("#059669")}
+        return {"category": "other", "emoji": "🟢", "icon": "🚗", "label": "ចរាចរណ៍"}
+    if "ពាណិជ្ជកម្ម" in doc_name:
+        return {"category": "other", "emoji": "🟢", "icon": "💰", "label": "ពាណិជ្ជកម្ម"}
+    if "ដីធ្លី" in doc_name:
+        return {"category": "other", "emoji": "🟢", "icon": "🏞️", "label": "ដីធ្លី"}
     
-    return {"category": "other", "emoji": "🟢", "icon": "📄", "label": doc_name, "color": colors.HexColor("#10B981")}
+    return {"category": "other", "emoji": "🟢", "icon": "📄", "label": doc_name}
 
 
 def group_results_by_document(results):
@@ -261,7 +220,8 @@ def _split_title_and_body(content, article_num):
     return (title, body)
 
 
-def _split_into_paragraphs(text, max_sentences_per_para=2):
+def _split_into_paragraphs(text, max_sentences_per_para=3):
+    """បំបែកកថាខណ្ឌ - 3 ប្រយោគ/para"""
     if not text:
         return []
     sentences = re.split(r'(?<=។)\s*', text)
@@ -273,7 +233,7 @@ def _split_into_paragraphs(text, max_sentences_per_para=2):
     for sent in sentences:
         current.append(sent)
         total_len = sum(len(s) for s in current)
-        if len(current) >= max_sentences_per_para or total_len > 250:
+        if len(current) >= max_sentences_per_para or total_len > 350:
             paragraphs.append(" ".join(current))
             current = []
     if current:
@@ -282,6 +242,9 @@ def _split_into_paragraphs(text, max_sentences_per_para=2):
 
 
 def format_body_paragraphs(body, indent="    "):
+    """
+    ⭐ v15: Compact - គ្មានគម្លាតបន្ទាត់ធំៗ
+    """
     if not body:
         return ""
     lines = body.split("\n")
@@ -295,13 +258,14 @@ def format_body_paragraphs(body, indent="    "):
             line
         ))
         if is_subheader:
-            formatted_lines.append(f"\n<b>▸ {escape_html(line)}</b>\n")
+            formatted_lines.append(f"<b>▸ {escape_html(line)}</b>")
         else:
             paragraphs = _split_into_paragraphs(line)
             for para in paragraphs:
                 if para.strip():
                     formatted_lines.append(f"{indent}{escape_html(para.strip())}")
-    return "\n\n".join(formatted_lines)
+    # ⭐ ប្រើ \n តែមួយ (compact)
+    return "\n".join(formatted_lines)
 
 
 def highlight_keywords_html(text, keywords):
@@ -326,7 +290,7 @@ def make_progress_bar(current, total, width=15):
 
 
 # ═══════════════════════════════════════════════
-# Format Preview + Detailed
+# Format Preview Mode
 # ═══════════════════════════════════════════════
 def format_preview_mode(data, session, pagination_info=None):
     results = data.get("results", [])
@@ -347,20 +311,19 @@ def format_preview_mode(data, session, pagination_info=None):
         bar = make_progress_bar(pagination_info["current_page"], pagination_info["total_pages"])
         msg += f"{bar}\n"
     
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n"
     
     filter_active = session.get("filter", "all")
     if filter_active == "all" and total_docs > 1:
-        msg += "📚 <b>ច្បាប់ទាំងអស់:</b>\n"
+        msg += "\n📚 <b>ច្បាប់ទាំងអស់:</b>\n"
         for doc_name, doc_results in all_groups.items():
             cat = get_law_category(doc_name)
             in_page = "👁" if doc_name in page_groups else ""
             msg += f"  {cat['emoji']} {escape_html(doc_name)} ({len(doc_results)}) {in_page}\n"
-        msg += "\n"
     
     for doc_name, doc_results in page_groups.items():
         cat = get_law_category(doc_name)
-        msg += f"{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b>\n"
+        msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b>\n"
         for r in doc_results:
             article = r.get("article", "")
             content = clean_content(r.get("content", ""))
@@ -371,12 +334,14 @@ def format_preview_mode(data, session, pagination_info=None):
                 msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b> - {escape_html(title)}\n"
             else:
                 msg += f"  ├ 📌 <b>មាត្រា {escape_html(str(article))}</b>\n"
-        msg += "\n"
     
-    msg += "👆 <i>ចុចប៊ូតុងខាងក្រោមដើម្បីមើលពេញ ឬ 💾 រក្សាទុក PDF</i>"
+    msg += "\n👆 <i>ចុចប៊ូតុងខាងក្រោមដើម្បីមើលពេញ ឬ 💾 រក្សា PDF</i>"
     return msg
 
 
+# ═══════════════════════════════════════════════
+# ⭐ v15: Format Detailed Mode (COMPACT)
+# ═══════════════════════════════════════════════
 def format_detailed_mode(data, session, pagination_info=None):
     results = data.get("results", [])
     keywords = session.get("keywords", [])
@@ -392,7 +357,7 @@ def format_detailed_mode(data, session, pagination_info=None):
     msg += f"📊 <b>{total_articles}</b> មាត្រា | <b>{total_docs}</b> ច្បាប់"
     if pagination_info:
         msg += f" | 📄 <b>{pagination_info['current_page']}/{pagination_info['total_pages']}</b>"
-    msg += "\n━━━━━━━━━━━━━━━━━━━━\n"
+    msg += "\n━━━━━━━━━━━━━━━━━━━━"
     
     page_groups = group_results_by_document(results)
     doc_list = list(page_groups.keys())
@@ -402,182 +367,48 @@ def format_detailed_mode(data, session, pagination_info=None):
         total_in_doc = len(all_groups.get(doc_name, []))
         current_in_page = len(doc_results)
         
+        # ⭐ Doc header - compact
         if total_in_doc > current_in_page:
-            msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({current_in_page}/{total_in_doc})\n"
+            msg += f"\n\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({current_in_page}/{total_in_doc})"
         else:
-            msg += f"\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({total_in_doc})\n"
+            msg += f"\n\n{cat['emoji']} {cat['icon']} <b>{escape_html(doc_name)}</b> ({total_in_doc})"
         
         for r_idx, r in enumerate(doc_results):
             article = r.get("article", "")
             content = clean_content(r.get("content", ""))
             title, body = _split_title_and_body(content, article)
             
-            msg += "\n"
+            # ⭐ Article header - តែ \n\n មួយ
             if article and title:
-                msg += f"📌 <b>មាត្រា {escape_html(str(article))} - {escape_html(title)}</b>\n"
+                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))} - {escape_html(title)}</b>"
             elif article:
-                msg += f"📌 <b>មាត្រា {escape_html(str(article))}</b>\n"
+                msg += f"\n\n📌 <b>មាត្រា {escape_html(str(article))}</b>"
             
+            # ⭐ Body - តែ \n មួយ មុន body
             if body:
                 formatted_body = format_body_paragraphs(body, indent="    ")
                 if keywords:
                     formatted_body = highlight_keywords_html(formatted_body, keywords)
-                msg += f"{formatted_body}\n"
+                msg += f"\n{formatted_body}"
             
+            # ⭐ Separator តូច
             if r_idx < len(doc_results) - 1:
-                msg += "\n▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️\n"
+                msg += "\n▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
         
         if doc_idx < len(doc_list) - 1:
-            msg += "\n━━━━━━━━━━━━━━━━━━━━\n"
+            msg += "\n━━━━━━━━━━━━━━━━━━━━"
     
     return msg
 
 
 # ═══════════════════════════════════════════════
-# ⭐ NEW: PDF Generation
+# ⭐ v15: PDF Generation with WeasyPrint
 # ═══════════════════════════════════════════════
 def generate_pdf(session):
-    """បង្កើត PDF ស្អាតៗ ពី session"""
-    buffer = BytesIO()
+    """Generate beautiful PDF with WeasyPrint (Khmer 100% support)"""
+    from weasyprint import HTML
+    from weasyprint.text.fonts import FontConfiguration
     
-    # Check fonts
-    try:
-        pdfmetrics.getFont("KhmerOS")
-        khmer_font = "KhmerOS"
-    except:
-        khmer_font = "Helvetica"
-        logger.warning("⚠️ Using Helvetica (Khmer font not available)")
-    
-    try:
-        pdfmetrics.getFont("KhmerOSMuol")
-        khmer_bold = "KhmerOSMuol"
-    except:
-        khmer_bold = "Helvetica-Bold"
-    
-    # Create document
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2*cm,
-        bottomMargin=2.5*cm,
-        title=f"ច្បាប់កម្ពុជា - {session.get('query', '')}",
-        author="Cambodia Law Bot"
-    )
-    
-    # ⭐ Styles
-    styles = getSampleStyleSheet()
-    
-    # Title style
-    title_style = ParagraphStyle(
-        'KhmerTitle',
-        parent=styles['Title'],
-        fontName=khmer_bold,
-        fontSize=22,
-        textColor=colors.HexColor("#1E293B"),
-        alignment=TA_CENTER,
-        spaceAfter=12,
-        leading=28
-    )
-    
-    # Subtitle
-    subtitle_style = ParagraphStyle(
-        'KhmerSubtitle',
-        parent=styles['Normal'],
-        fontName=khmer_font,
-        fontSize=12,
-        textColor=colors.HexColor("#64748B"),
-        alignment=TA_CENTER,
-        spaceAfter=6,
-        leading=16
-    )
-    
-    # Document header (ក្រម)
-    doc_header_style = ParagraphStyle(
-        'DocHeader',
-        parent=styles['Heading1'],
-        fontName=khmer_bold,
-        fontSize=16,
-        textColor=colors.white,
-        backColor=colors.HexColor("#DC2626"),
-        alignment=TA_LEFT,
-        borderPadding=10,
-        spaceBefore=15,
-        spaceAfter=10,
-        leading=22,
-        leftIndent=0,
-        rightIndent=0
-    )
-    
-    # Article header
-    article_style = ParagraphStyle(
-        'Article',
-        parent=styles['Heading2'],
-        fontName=khmer_bold,
-        fontSize=13,
-        textColor=colors.HexColor("#1E293B"),
-        backColor=colors.HexColor("#FEF3C7"),
-        alignment=TA_LEFT,
-        borderPadding=8,
-        spaceBefore=10,
-        spaceAfter=6,
-        leading=18,
-        leftIndent=0,
-        borderColor=colors.HexColor("#F59E0B"),
-        borderWidth=0
-    )
-    
-    # Body paragraph
-    body_style = ParagraphStyle(
-        'Body',
-        parent=styles['Normal'],
-        fontName=khmer_font,
-        fontSize=11,
-        textColor=colors.HexColor("#334155"),
-        alignment=TA_JUSTIFY,
-        spaceBefore=4,
-        spaceAfter=8,
-        leading=18,
-        firstLineIndent=20,
-        leftIndent=10,
-        rightIndent=5
-    )
-    
-    # Sub-header (ជំពូក)
-    subheader_style = ParagraphStyle(
-        'SubHeader',
-        parent=styles['Normal'],
-        fontName=khmer_bold,
-        fontSize=12,
-        textColor=colors.HexColor("#7C3AED"),
-        alignment=TA_LEFT,
-        spaceBefore=6,
-        spaceAfter=4,
-        leading=16
-    )
-    
-    # Footer info
-    info_style = ParagraphStyle(
-        'Info',
-        parent=styles['Normal'],
-        fontName=khmer_font,
-        fontSize=9,
-        textColor=colors.HexColor("#94A3B8"),
-        alignment=TA_CENTER,
-        leading=12
-    )
-    
-    # ⭐ Build content
-    story = []
-    
-    # ─────── HEADER ───────
-    story.append(Paragraph("🇰🇭 ច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា", title_style))
-    story.append(Paragraph("Cambodia Law Reference", subtitle_style))
-    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor("#DC2626")))
-    story.append(Spacer(1, 0.5*cm))
-    
-    # ─────── QUERY INFO ───────
     all_results = session.get("all_results", [])
     all_groups = group_results_by_document(all_results)
     total_docs = len(all_groups)
@@ -585,103 +416,366 @@ def generate_pdf(session):
     query = session.get("query", "")
     date_str = datetime.now().strftime("%d/%m/%Y %H:%M")
     
-    # Info table
-    info_data = [
-        ["សំណួរស្វែងរក:", query],
-        ["ចំនួនមាត្រា:", f"{total_articles} មាត្រា"],
-        ["ចំនួនច្បាប់:", f"{total_docs} ច្បាប់"],
-        ["កាលបរិច្ឆេទ:", date_str],
-    ]
+    # ⭐ Build HTML
+    html_content = f"""<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<title>ច្បាប់កម្ពុជា - {escape_html(query)}</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&family=Noto+Serif+Khmer:wght@400;700&display=swap');
     
-    info_table = Table(info_data, colWidths=[4*cm, 12*cm])
-    info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), khmer_bold),
-        ('FONTNAME', (1, 0), (1, -1), khmer_font),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor("#475569")),
-        ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor("#0F172A")),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F1F5F9")),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 0.5*cm))
+    @page {{
+        size: A4;
+        margin: 2.5cm 2cm 2cm 2cm;
+        
+        @top-center {{
+            content: "🇰🇭 ច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា";
+            font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
+            font-size: 9pt;
+            color: #DC2626;
+            font-weight: bold;
+            padding-bottom: 5px;
+        }}
+        
+        @bottom-center {{
+            content: "ទំព័រទី " counter(page) " / " counter(pages);
+            font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
+            font-size: 9pt;
+            color: #94A3B8;
+        }}
+    }}
     
-    # ─────── TABLE OF CONTENTS ───────
-    story.append(Paragraph("📋 <b>មាតិកា</b>", doc_header_style))
+    * {{
+        font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
+        box-sizing: border-box;
+    }}
     
-    toc_data = [["#", "ច្បាប់", "ចំនួនមាត្រា"]]
+    body {{
+        color: #1E293B;
+        line-height: 1.7;
+        font-size: 11pt;
+        margin: 0;
+        padding: 0;
+    }}
+    
+    /* ─── Cover Page ─── */
+    .cover {{
+        text-align: center;
+        padding: 3cm 0;
+        page-break-after: always;
+    }}
+    
+    .cover .flag {{
+        font-size: 48pt;
+        margin: 20px 0;
+    }}
+    
+    .cover h1 {{
+        font-family: 'Noto Serif Khmer', serif;
+        font-size: 28pt;
+        color: #DC2626;
+        margin: 20px 0;
+        line-height: 1.3;
+        font-weight: bold;
+    }}
+    
+    .cover .subtitle {{
+        font-size: 14pt;
+        color: #64748B;
+        margin-bottom: 40px;
+        font-style: italic;
+    }}
+    
+    .divider {{
+        width: 60%;
+        height: 3px;
+        background: linear-gradient(to right, transparent, #DC2626, transparent);
+        margin: 30px auto;
+        border: none;
+    }}
+    
+    /* ─── Info Table ─── */
+    .info-table {{
+        width: 80%;
+        margin: 40px auto;
+        border-collapse: collapse;
+        background: #F8FAFC;
+        border: 2px solid #DC2626;
+        border-radius: 8px;
+        overflow: hidden;
+    }}
+    
+    .info-table td {{
+        padding: 12px 20px;
+        border-bottom: 1px solid #E2E8F0;
+        text-align: left;
+        font-size: 11pt;
+    }}
+    
+    .info-table tr:last-child td {{
+        border-bottom: none;
+    }}
+    
+    .info-table td:first-child {{
+        font-weight: bold;
+        color: #475569;
+        width: 40%;
+        background: #F1F5F9;
+    }}
+    
+    .info-table td:last-child {{
+        color: #0F172A;
+    }}
+    
+    /* ─── TOC ─── */
+    .toc {{
+        page-break-after: always;
+    }}
+    
+    .toc-title {{
+        font-size: 22pt;
+        color: white;
+        background: linear-gradient(135deg, #1E293B, #334155);
+        padding: 15px 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: bold;
+    }}
+    
+    .toc-table {{
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }}
+    
+    .toc-table th {{
+        background: #1E293B;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-size: 11pt;
+        font-weight: bold;
+    }}
+    
+    .toc-table td {{
+        padding: 10px 12px;
+        border-bottom: 1px solid #E2E8F0;
+        font-size: 10pt;
+    }}
+    
+    .toc-table tr:nth-child(even) {{
+        background: #F8FAFC;
+    }}
+    
+    /* ─── Document Section ─── */
+    .doc-section {{
+        page-break-before: always;
+        margin-top: 10px;
+    }}
+    
+    .doc-section:first-of-type {{
+        page-break-before: auto;
+    }}
+    
+    .doc-header {{
+        padding: 15px 20px;
+        color: white;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 15pt;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }}
+    
+    .doc-header.criminal {{
+        background: linear-gradient(135deg, #DC2626, #991B1B);
+    }}
+    
+    .doc-header.civil {{
+        background: linear-gradient(135deg, #2563EB, #1E40AF);
+    }}
+    
+    .doc-header.other {{
+        background: linear-gradient(135deg, #059669, #047857);
+    }}
+    
+    .doc-count {{
+        display: inline-block;
+        background: rgba(255,255,255,0.25);
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 10pt;
+        margin-left: 10px;
+        font-weight: normal;
+    }}
+    
+    /* ─── Article ─── */
+    .article {{
+        margin: 15px 0;
+        page-break-inside: avoid;
+    }}
+    
+    .article-header {{
+        background: linear-gradient(to right, #FEF3C7, #FDE68A);
+        border-left: 4px solid #F59E0B;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: 12pt;
+        color: #78350F;
+        border-radius: 4px;
+    }}
+    
+    .article-body {{
+        padding: 0 10px;
+    }}
+    
+    .article-body p {{
+        text-indent: 30px;
+        text-align: justify;
+        margin: 6px 0;
+        line-height: 1.8;
+        color: #334155;
+    }}
+    
+    .sub-header {{
+        color: #7C3AED;
+        font-weight: bold;
+        margin: 12px 0 6px 0;
+        padding: 8px 12px;
+        background: #F3E8FF;
+        border-left: 3px solid #7C3AED;
+        border-radius: 4px;
+        font-size: 11pt;
+    }}
+    
+    /* ─── Separator ─── */
+    .separator {{
+        text-align: center;
+        margin: 12px 0;
+        color: #CBD5E1;
+        font-size: 10pt;
+        letter-spacing: 5px;
+    }}
+    
+    /* ─── Badge ─── */
+    .badge {{
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 9pt;
+        margin-right: 5px;
+        font-weight: bold;
+    }}
+    
+    .badge.criminal {{ background: #FEE2E2; color: #991B1B; }}
+    .badge.civil {{ background: #DBEAFE; color: #1E40AF; }}
+    .badge.other {{ background: #D1FAE5; color: #065F46; }}
+    
+    /* ─── Footer ─── */
+    .footer {{
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 2px solid #DC2626;
+        text-align: center;
+        color: #94A3B8;
+        font-size: 9pt;
+    }}
+</style>
+</head>
+<body>
+
+<!-- ═══════ COVER PAGE ═══════ -->
+<div class="cover">
+    <div class="flag">🇰🇭</div>
+    <h1>ច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា</h1>
+    <div class="subtitle">Cambodia Law Reference</div>
+    <hr class="divider">
+    
+    <table class="info-table">
+        <tr>
+            <td>🔍 សំណួរស្វែងរក</td>
+            <td><strong>{escape_html(query)}</strong></td>
+        </tr>
+        <tr>
+            <td>📊 ចំនួនមាត្រា</td>
+            <td>{total_articles} មាត្រា</td>
+        </tr>
+        <tr>
+            <td>📚 ចំនួនច្បាប់</td>
+            <td>{total_docs} ច្បាប់</td>
+        </tr>
+        <tr>
+            <td>📅 កាលបរិច្ឆេទ</td>
+            <td>{date_str}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ═══════ TOC ═══════ -->
+<div class="toc">
+    <div class="toc-title">📋 មាតិកា</div>
+    <table class="toc-table">
+        <thead>
+            <tr>
+                <th style="width:5%; text-align:center">#</th>
+                <th style="width:75%">ច្បាប់</th>
+                <th style="width:20%; text-align:center">ចំនួនមាត្រា</th>
+            </tr>
+        </thead>
+        <tbody>
+"""
+    
     for i, (doc_name, doc_results) in enumerate(all_groups.items(), 1):
         cat = get_law_category(doc_name)
-        toc_data.append([str(i), f"{cat['label']} - {doc_name}", f"{len(doc_results)} មាត្រា"])
+        html_content += f"""            <tr>
+                <td style="text-align:center"><strong>{i}</strong></td>
+                <td>
+                    <span class="badge {cat['category']}">{cat['label']}</span>
+                    {escape_html(doc_name)}
+                </td>
+                <td style="text-align:center"><strong>{len(doc_results)}</strong> មាត្រា</td>
+            </tr>
+"""
     
-    toc_table = Table(toc_data, colWidths=[1*cm, 12*cm, 3*cm])
-    toc_table.setStyle(TableStyle([
-        # Header row
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1E293B")),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), khmer_bold),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('TOPPADDING', (0, 0), (-1, 0), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-        # Data rows
-        ('FONTNAME', (0, 1), (-1, -1), khmer_font),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor("#334155")),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#FAFAFA")),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FAFAFA"), colors.white]),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
-    ]))
-    story.append(toc_table)
-    story.append(PageBreak())
+    html_content += """        </tbody>
+    </table>
+</div>
+
+<!-- ═══════ CONTENT ═══════ -->
+"""
     
-    # ─────── CONTENT ───────
     for doc_idx, (doc_name, doc_results) in enumerate(all_groups.items()):
         cat = get_law_category(doc_name)
         
-        # Custom doc header with color
-        colored_doc_style = ParagraphStyle(
-            f'DocHeader_{doc_idx}',
-            parent=doc_header_style,
-            backColor=cat["color"]
-        )
-        story.append(Paragraph(f"{cat['label']} - {doc_name}", colored_doc_style))
-        story.append(Paragraph(f"ចំនួន: {len(doc_results)} មាត្រា", info_style))
-        story.append(Spacer(1, 0.3*cm))
+        html_content += f"""
+<div class="doc-section">
+    <div class="doc-header {cat['category']}">
+        {cat['icon']} {escape_html(doc_name)}
+        <span class="doc-count">{len(doc_results)} មាត្រា</span>
+    </div>
+"""
         
-        # Articles
         for r_idx, r in enumerate(doc_results):
             article = r.get("article", "")
             content = clean_content(r.get("content", ""))
             title, body = _split_title_and_body(content, article)
             
-            # Article header
             if article and title:
-                article_text = f"📌 មាត្រា {article} - {title}"
+                article_title = f"📌 មាត្រា {article} - {title}"
             elif article:
-                article_text = f"📌 មាត្រា {article}"
+                article_title = f"📌 មាត្រា {article}"
             else:
-                article_text = "📌 ខ្លឹមសារ"
+                article_title = "📌 ខ្លឹមសារ"
             
-            # Keep article + body together (avoid split across pages)
-            article_block = []
-            article_block.append(Paragraph(article_text, article_style))
+            html_content += f"""    <div class="article">
+        <div class="article-header">{escape_html(article_title)}</div>
+        <div class="article-body">
+"""
             
-            # Body paragraphs
             if body:
                 body_lines = body.split("\n")
                 for line in body_lines:
@@ -689,87 +783,52 @@ def generate_pdf(session):
                     if not line:
                         continue
                     
-                    # Check sub-header
                     is_subheader = bool(re.match(
                         r'^(ជំពូកទី|ផ្នែកទី|វិភាគទី|ផ្នែក)',
                         line
                     ))
                     
                     if is_subheader:
-                        article_block.append(Paragraph(f"▸ {line}", subheader_style))
+                        html_content += f'            <div class="sub-header">▸ {escape_html(line)}</div>\n'
                     else:
-                        # Split into paragraphs
                         paragraphs = _split_into_paragraphs(line)
                         for para in paragraphs:
                             if para.strip():
-                                article_block.append(Paragraph(para.strip(), body_style))
+                                html_content += f'            <p>{escape_html(para.strip())}</p>\n'
             
-            # Try to keep article together
-            try:
-                story.append(KeepTogether(article_block))
-            except:
-                for block in article_block:
-                    story.append(block)
+            html_content += """        </div>
+    </div>
+"""
             
-            # Separator between articles
             if r_idx < len(doc_results) - 1:
-                story.append(Spacer(1, 0.2*cm))
-                story.append(HRFlowable(
-                    width="30%",
-                    thickness=0.5,
-                    color=colors.HexColor("#CBD5E1"),
-                    hAlign='CENTER'
-                ))
-                story.append(Spacer(1, 0.2*cm))
+                html_content += '    <div class="separator">◦ ◦ ◦</div>\n'
         
-        # Page break between documents
-        if doc_idx < len(all_groups) - 1:
-            story.append(PageBreak())
+        html_content += "</div>\n"
     
-    # ─────── FOOTER ───────
-    story.append(Spacer(1, 1*cm))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#DC2626")))
-    story.append(Spacer(1, 0.3*cm))
-    story.append(Paragraph(
-        "ឯកសារនេះបានបង្កើតដោយស្វ័យប្រវត្តិពី Cambodia Law Bot",
-        info_style
-    ))
-    story.append(Paragraph(
-        f"បង្កើតនៅ: {date_str}",
-        info_style
-    ))
+    html_content += f"""
+<div class="footer">
+    <p><strong>ឯកសារនេះបានបង្កើតដោយស្វ័យប្រវត្តិ</strong></p>
+    <p>🤖 Cambodia Law Bot | {date_str}</p>
+</div>
+
+</body>
+</html>
+"""
     
-    # ⭐ Build PDF with page numbers
-    def add_page_number(canvas_obj, doc):
-        canvas_obj.saveState()
-        canvas_obj.setFont(khmer_font, 9)
-        canvas_obj.setFillColor(colors.HexColor("#94A3B8"))
-        
-        # Page number
-        page_text = f"ទំព័រទី {doc.page}"
-        canvas_obj.drawCentredString(A4[0] / 2, 1.5*cm, page_text)
-        
-        # Header
-        canvas_obj.setFillColor(colors.HexColor("#DC2626"))
-        canvas_obj.setFont(khmer_bold, 8)
-        canvas_obj.drawString(2*cm, A4[1] - 1*cm, "🇰🇭 ច្បាប់កម្ពុជា")
-        canvas_obj.drawRightString(A4[0] - 2*cm, A4[1] - 1*cm, session.get("query", ""))
-        
-        # Line under header
-        canvas_obj.setStrokeColor(colors.HexColor("#DC2626"))
-        canvas_obj.setLineWidth(0.5)
-        canvas_obj.line(2*cm, A4[1] - 1.2*cm, A4[0] - 2*cm, A4[1] - 1.2*cm)
-        
-        canvas_obj.restoreState()
+    # Generate PDF
+    logger.info("🔨 Generating PDF with WeasyPrint...")
+    font_config = FontConfiguration()
+    pdf_bytes = HTML(string=html_content).write_pdf(font_config=font_config)
     
-    doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
-    
+    buffer = BytesIO(pdf_bytes)
     buffer.seek(0)
+    logger.info(f"✅ PDF generated: {len(pdf_bytes):,} bytes")
+    
     return buffer
 
 
 # ═══════════════════════════════════════════════
-# Inline Keyboard
+# Inline Keyboards
 # ═══════════════════════════════════════════════
 def build_navigation_keyboard(session):
     pagination = paginate_results(session["results"], session["page"])
@@ -927,11 +986,7 @@ async def send_results(update, session, is_callback=False):
         logger.error(f"❌ send_results error: {e}", exc_info=True)
 
 
-# ═══════════════════════════════════════════════
-# ⭐ NEW: Session recovery helper
-# ═══════════════════════════════════════════════
 async def try_recover_session(update, is_callback=True):
-    """បើ session បាត់ → guide user"""
     if is_callback:
         target = update.callback_query.message
     else:
@@ -943,9 +998,8 @@ async def try_recover_session(update, is_callback=True):
     
     await target.reply_text(
         "⚠️ <b>Session បាត់</b>\n\n"
-        "Session របស់អ្នកបានបាត់ (bot ភ្ញាក់ពីដេក)។\n"
         "សូមស្វែងរកម្តងទៀត។\n\n"
-        "💡 <b>ឧទាហរណ៍:</b>\n"
+        "💡 ឧទាហរណ៍:\n"
         "  • វាយ <code>លួច</code>\n"
         "  • វាយ <code>មាត្រា ៥៥</code>",
         parse_mode=ParseMode.HTML,
@@ -974,8 +1028,7 @@ async def process_search_query(update, query, is_callback=False):
             except:
                 pass
         await update.effective_chat.send_message(
-            f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់ <b>{escape_html(query)}</b>\n\n"
-            f"💡 សូមសាកសំណួរផ្សេង",
+            f"🔍 រកមិនឃើញលទ្ធផលសម្រាប់ <b>{escape_html(query)}</b>\n\n💡 សូមសាកសំណួរផ្សេង",
             parse_mode=ParseMode.HTML
         )
         return
@@ -992,7 +1045,7 @@ async def process_search_query(update, query, is_callback=False):
         "keywords": data.get("keywords", []),
         "filter": "all"
     }
-    update_session(user_id, session_data)  # ⭐ Persist
+    update_session(user_id, session_data)
     
     if status_msg:
         try:
@@ -1061,7 +1114,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"query.answer() failed: {e}")
     
     try:
-        # ─── Navigation ───
+        # Navigation
         if data == "nav:next":
             session = USER_SESSIONS.get(user_id)
             if not session:
@@ -1097,7 +1150,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     show_alert=True
                 )
         
-        # ─── Mode ───
+        # Mode
         elif data == "mode:detailed":
             session = USER_SESSIONS.get(user_id)
             if not session:
@@ -1118,7 +1171,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             update_session(user_id, session)
             await send_results(update, session, is_callback=True)
         
-        # ─── Filter ───
+        # Filter
         elif data.startswith("filter:"):
             session = USER_SESSIONS.get(user_id)
             if not session:
@@ -1143,7 +1196,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 session["filter"] = "all"
                 update_session(user_id, session)
         
-        # ─── Quick search ───
+        # Quick search
         elif data.startswith("quick:"):
             search_term = data.split(":", 1)[1]
             status = await query.message.reply_text(
@@ -1190,7 +1243,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.HTML
                 )
         
-        # ─── ⭐ NEW: Save PDF ───
+        # Save PDF
         elif data == "action:save_pdf":
             session = USER_SESSIONS.get(user_id)
             if not session:
@@ -1198,12 +1251,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             
             await query.answer("📄 កំពុងបង្កើត PDF...", show_alert=False)
-            status = await query.message.reply_text("📄 កំពុងបង្កើត PDF... សូមរង់ចាំ...")
+            status = await query.message.reply_text(
+                "📄 <b>កំពុងបង្កើត PDF...</b>\n\nសូមរង់ចាំ 10-30 វិនាទី...",
+                parse_mode=ParseMode.HTML
+            )
             
             try:
                 pdf_buffer = generate_pdf(session)
                 
-                # Filename
                 query_safe = re.sub(r'[^\w\u1780-\u17FF]', '_', session.get("query", "law"))[:30]
                 date_str = datetime.now().strftime("%Y%m%d_%H%M")
                 filename = f"ច្បាប់_{query_safe}_{date_str}.pdf"
@@ -1213,7 +1268,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except:
                     pass
                 
-                # Send PDF
                 await query.message.reply_document(
                     document=pdf_buffer,
                     filename=filename,
@@ -1227,14 +1281,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 logger.info(f"✅ PDF sent to user {user_id}")
             except Exception as e:
-                logger.error(f"❌ PDF generation error: {e}", exc_info=True)
+                logger.error(f"❌ PDF error: {e}", exc_info=True)
                 try:
                     await status.delete()
                 except:
                     pass
                 await query.message.reply_text(f"❌ បង្កើត PDF ខុស: {str(e)[:100]}")
         
-        # ─── Actions ───
+        # Actions
         elif data == "action:new_search":
             await query.message.reply_text(
                 "🔍 <b>សូមវាយសំណួរថ្មី</b>\n\n"
@@ -1261,8 +1315,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "  <code>លួច</code>\n"
                 "  <code>មាត្រា ៥៥</code>\n\n"
                 "🎯 <b>ប៊ូតុង:</b>\n"
-                "  👁 មើលពេញ\n"
-                "  📋 មើលសង្ខេប\n"
+                "  👁 មើលពេញ | 📋 សង្ខេប\n"
                 "  💾 រក្សា PDF\n"
                 "  🔴🔵🟢 Filter\n\n"
                 "🎨 <b>ពណ៌:</b>\n"
@@ -1393,7 +1446,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b"Bot v14 running")
+        self.wfile.write(b"Bot v15 running")
     def log_message(self, format, *args):
         return
 
@@ -1412,15 +1465,10 @@ def main():
         return
     
     logger.info("=" * 50)
-    logger.info("🤖 Bot v14 (Persistent Sessions + PDF)")
+    logger.info("🤖 Bot v15 (Compact + WeasyPrint PDF)")
     logger.info("=" * 50)
     
-    # ⭐ Register fonts
-    register_khmer_fonts()
-    
-    # ⭐ Load sessions
     load_sessions()
-    
     threading.Thread(target=run_http_server, daemon=True).start()
     
     app = Application.builder().token(TELEGRAM_TOKEN).build()
