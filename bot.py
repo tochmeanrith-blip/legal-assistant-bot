@@ -234,8 +234,7 @@ def format_with_gemini(markdown_text, query, mode="search"):
             "៩. កុំបន្ថែម disclaimer, note, ឬការណែនាំបន្ថែម\n"
             "១០. រក្សាលេខមាត្រា និងឈ្មោះឯកសារឲ្យដដែល\n"
             "១១. រក្សាលេខ 'លទ្ធផលទី X/Y' ដដែល\n"
-            "១២. ប្រើ separator (▬▬▬▬▬▬▬▬▬▬) បំបែក sections\n"
-            "១៣. ធ្វើសេចក្តីសន្និដ្ឋានចុងក្រោយដោយពន្យល់អោយបានក្បោះក្បាយ"
+            "១២. ប្រើ separator (▬▬▬▬▬▬▬▬▬▬) បំបែក sections"
         )
         
         if mode == "search":
