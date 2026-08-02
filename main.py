@@ -1508,7 +1508,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # ⭐ Preview PDF - Send only button (minimal message)
-if data == "action:preview_pdf":
+    if data == "action:preview_pdf":
     session = USER_SESSIONS.get(user_id)
     if not session or not session.get("results"):
         await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
