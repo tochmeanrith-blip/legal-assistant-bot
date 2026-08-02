@@ -129,15 +129,19 @@
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
-            font-size: var(--base-font-size, 15px);
-            line-height: var(--line-height, 1.9);
-            color: var(--color-text);
-            background: var(--color-bg-gradient);
-            min-height: 100vh;
-            padding: 20px 0;
-            transition: all 0.3s ease;
-        }
+    font-family: 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: var(--base-font-size, 16px);
+    font-weight: 400;
+    line-height: var(--line-height, 1.8);
+    color: var(--color-text);
+    background: var(--color-bg-gradient);
+    min-height: 100vh;
+    padding: 20px 0;
+    transition: all 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
 
         .progress-bar {
             position: fixed;
@@ -194,13 +198,13 @@
         }
 
         .header h1 {
-            font-family: 'Battambang', 'Moul', serif;
-            font-size: var(--title-font-size, 26px);
-            font-weight: 700;
-            margin-bottom: 8px;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            font-family: 'Noto Sans Khmer', sans-serif;
+    font-size: var(--title-font-size, 26px);
+    font-weight: 700;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
         .header .subtitle {
@@ -256,17 +260,17 @@
 
         .doc-header {
             padding: 20px 30px;
-            font-family: 'Battambang', serif;
-            font-size: 18px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            position: sticky;
-            top: 4px;
-            z-index: 10;
-            background: var(--color-surface);
-            transition: all 0.3s;
+    font-family: 'Noto Sans Khmer', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 4px;
+    z-index: 10;
+    background: var(--color-surface);
+    transition: all 0.3s
         }
 
         .doc-header.criminal {
@@ -329,23 +333,23 @@
         }
 
         .article-number {
-            font-family: 'Battambang', serif;
-            font-weight: 700;
-            color: var(--color-primary);
-            font-size: 17px;
-            white-space: nowrap;
-            background: var(--color-hover);
-            padding: 4px 12px;
-            border-radius: 6px;
-            box-shadow: var(--shadow-sm);
+            font-family: 'Noto Sans Khmer', sans-serif;
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 17px;
+    white-space: nowrap;
+    background: var(--color-hover);
+    padding: 4px 12px;
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
         }
 
         .article-title {
-            font-family: 'Noto Serif Khmer', serif;
-            font-weight: 600;
-            color: var(--color-text);
-            font-size: 16px;
-            flex: 1;
+            font-family: 'Noto Sans Khmer', sans-serif;
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: 16px;
+    flex: 1;
         }
 
         .article-title::before { content: "— "; color: var(--color-accent); font-weight: 700; }
