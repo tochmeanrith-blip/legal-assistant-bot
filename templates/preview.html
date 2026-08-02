@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         /* Theme Variables */
@@ -508,38 +508,12 @@
             font-weight: inherit !important;
         }
 
-        /* ═══════════════════════════════════ */
-        /* FOOTER - Simple & Clean             */
-        /* ═══════════════════════════════════ */
+        /* Footer - Simple & Clean */
         .footer {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
-            padding: 30px 30px 25px;
+            padding: 25px 30px;
             text-align: center;
-        }
-
-        .creator-section {
-            margin-bottom: 20px;
-        }
-
-        .creator-label {
-            font-family: 'Noto Sans Khmer', sans-serif !important;
-            font-size: 12px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.65);
-            letter-spacing: 2px;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        .creator-name {
-            font-family: 'Noto Serif Khmer', 'Noto Sans Khmer', serif !important;
-            font-weight: 700;
-            font-size: 18px;
-            color: var(--color-accent);
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .footer .bot-name {
@@ -879,16 +853,7 @@
 
             /* Mobile Footer */
             .footer {
-                padding: 25px 15px 20px;
-            }
-
-            .creator-label {
-                font-size: 11px;
-                letter-spacing: 1.5px;
-            }
-
-            .creator-name {
-                font-size: 16px;
+                padding: 20px 15px;
             }
 
             .footer .bot-name {
@@ -1087,27 +1052,9 @@
             .footer {
                 background: white !important;
                 color: #1a202c !important;
-                padding: 20px !important;
+                padding: 15px !important;
                 font-size: 9pt !important;
                 border-top: 3px double #d69e2e !important;
-            }
-
-            .creator-section {
-                margin-bottom: 12px !important;
-            }
-
-            .creator-label {
-                color: #666 !important;
-                font-size: 9pt !important;
-                letter-spacing: 1.5px !important;
-            }
-
-            .creator-name {
-                color: #d69e2e !important;
-                font-size: 14pt !important;
-                margin-bottom: 4px !important;
-                text-shadow: none !important;
-                font-weight: 700 !important;
             }
 
             .footer .bot-name {
@@ -1234,10 +1181,6 @@
     {% endfor %}
 
     <div class="footer">
-        <div class="creator-section">
-            <div class="creator-label">រៀបចំដោយ</div>
-            <div class="creator-name">លោក តូច មានរឹទ្ធិ</div>
-        </div>
         <div class="bot-name">🤖 Cambodia Legal Bot v18.0</div>
         <div class="creation-date">បង្កើតនៅ {{ datetime_full }}</div>
         <div class="warning">
