@@ -418,7 +418,6 @@ def build_preview_data(session):
     groups = group_results_by_document(results)
     sorted_doc_names = sort_documents_by_priority(list(groups.keys()))
     
-    # Build ordered grouped results with processed articles
     grouped_results = OrderedDict()
     doc_category = {}
     doc_emoji = {}
@@ -434,26 +433,10 @@ def build_preview_data(session):
             content = clean_content(r.get("content", ""))
             title, body = _split_title_and_body(content, article_num)
             
-            # Format body as HTML paragraphs
+            # ⭐ NEW: Better body formatting
             body_html = ""
             if body:
-                lines = body.split("\n")
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    # Highlight keywords
-                    escaped_line = escape_html(line)
-                    if keywords:
-                        for kw in keywords:
-                            if kw and len(kw) >= 2:
-                                escaped_kw = escape_html(kw)
-                                pattern = re.compile(re.escape(escaped_kw), re.IGNORECASE)
-                                escaped_line = pattern.sub(
-                                    f'<span class="highlight">{escaped_kw}</span>',
-                                    escaped_line
-                                )
-                    body_html += f"<p>{escaped_line}</p>"
+                body_html = format_body_html(body, keywords)
             
             processed_articles.append({
                 "article": article_num,
@@ -476,6 +459,108 @@ def build_preview_data(session):
         "doc_category": doc_category,
         "doc_emoji": doc_emoji
     }
+
+
+def format_body_html(body, keywords=None):
+    """
+    ⭐ NEW: Format legal text body with beautiful HTML
+    Detects: numbered lists (១. ២. ៣.), sub-lists (ក. ខ. គ.), regular paragraphs
+    """
+    if not body:
+        return ""
+    
+    # Clean up
+    body = re.sub(r'\n{3,}', '\n\n', body)
+    lines = body.split('\n')
+    
+    html_parts = []
+    current_para = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            if current_para:
+                html_parts.append(_process_paragraph(' '.join(current_para), keywords))
+                current_para = []
+            continue
+        
+        # Check for numbered points: ១- ២- ១. ២. 1. 2.
+        num_match = re.match(r'^([០-៩\d]+)[\.\-–—។]\s*(.+)$', line)
+        # Check for sub-points: ក- ក. ខ. គ.
+        sub_match = re.match(r'^([ក-អ])[\.\-–—។]\s*(.+)$', line)
+        
+        if num_match:
+            # Flush current paragraph
+            if current_para:
+                html_parts.append(_process_paragraph(' '.join(current_para), keywords))
+                current_para = []
+            
+            num_label = num_match.group(1)
+            text = num_match.group(2)
+            processed_text = _highlight_text(text, keywords)
+            html_parts.append(
+                f'<p class="numbered">'
+                f'<span class="num-label">{num_label}</span>'
+                f'{processed_text}'
+                f'</p>'
+            )
+        elif sub_match:
+            if current_para:
+                html_parts.append(_process_paragraph(' '.join(current_para), keywords))
+                current_para = []
+            
+            sub_label = sub_match.group(1)
+            text = sub_match.group(2)
+            processed_text = _highlight_text(text, keywords)
+            html_parts.append(
+                f'<p class="sub-numbered">'
+                f'<span class="sub-label">{sub_label}</span>'
+                f'{processed_text}'
+                f'</p>'
+            )
+        else:
+            current_para.append(line)
+    
+    # Flush remaining
+    if current_para:
+        html_parts.append(_process_paragraph(' '.join(current_para), keywords))
+    
+    return ''.join(html_parts)
+
+
+def _process_paragraph(text, keywords=None):
+    """Process a regular paragraph"""
+    if not text.strip():
+        return ""
+    text = _highlight_text(text, keywords)
+    return f'<p>{text}</p>'
+
+
+def _highlight_text(text, keywords=None):
+    """Highlight keywords in text"""
+    if not text:
+        return ""
+    
+    # Escape HTML first
+    text = escape_html(text)
+    
+    if not keywords:
+        return text
+    
+    # Sort keywords by length (longest first) to avoid nested highlights
+    sorted_keywords = sorted(keywords, key=len, reverse=True)
+    
+    for kw in sorted_keywords:
+        if not kw or len(kw) < 2:
+            continue
+        escaped_kw = escape_html(kw)
+        pattern = re.compile(re.escape(escaped_kw), re.IGNORECASE)
+        text = pattern.sub(
+            f'<span class="highlight">{escaped_kw}</span>',
+            text
+        )
+    
+    return text
 
 # ═══════════════════════════════════════════════
 # Format Modes (Telegram)
