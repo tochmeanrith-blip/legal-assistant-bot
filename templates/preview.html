@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html lang="km">
+<html lang="km" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
 
-    <!-- Google Fonts: Noto Sans/Serif Khmer -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700;800&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Moul&family=Battambang:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700;800&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Battambang:wght@400;700&family=Moul&display=swap" rel="stylesheet">
 
     <style>
         /* ═══════════════════════════════════ */
-        /* CSS Variables                       */
+        /* THEME VARIABLES                     */
         /* ═══════════════════════════════════ */
-        :root {
+        
+        /* Light Theme (Default) */
+        [data-theme="light"] {
             --color-primary: #1a365d;
             --color-primary-light: #2c5282;
             --color-accent: #d69e2e;
@@ -24,26 +25,111 @@
             --color-text: #1a202c;
             --color-text-light: #4a5568;
             --color-bg: #f7fafc;
+            --color-bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             --color-white: #ffffff;
+            --color-surface: #ffffff;
             --color-border: #e2e8f0;
-            --color-highlight: #fefcbf;
+            --color-highlight: #fef3c7;
             --color-highlight-text: #744210;
-            
-            --font-sans: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
-            --font-serif: 'Noto Serif Khmer', 'Khmer OS Muol Light', serif;
-            --font-title: 'Battambang', 'Moul', serif;
-            
+            --color-hover: #fafbfc;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
             --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
             --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
-            
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
         }
         
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --color-primary: #4299e1;
+            --color-primary-light: #63b3ed;
+            --color-accent: #f6ad55;
+            --color-criminal: #fc8181;
+            --color-civil: #63b3ed;
+            --color-other: #68d391;
+            --color-text: #e2e8f0;
+            --color-text-light: #a0aec0;
+            --color-bg: #1a202c;
+            --color-bg-gradient: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            --color-white: #2d3748;
+            --color-surface: #2d3748;
+            --color-border: #4a5568;
+            --color-highlight: #744210;
+            --color-highlight-text: #fef3c7;
+            --color-hover: #2d3748;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        
+        /* Sepia Theme */
+        [data-theme="sepia"] {
+            --color-primary: #8b4513;
+            --color-primary-light: #a0522d;
+            --color-accent: #daa520;
+            --color-criminal: #a52a2a;
+            --color-civil: #4682b4;
+            --color-other: #556b2f;
+            --color-text: #3e2c1e;
+            --color-text-light: #6b5b47;
+            --color-bg: #f5e6d3;
+            --color-bg-gradient: linear-gradient(135deg, #f5e6d3 0%, #e8d5b7 100%);
+            --color-white: #faf3e7;
+            --color-surface: #faf3e7;
+            --color-border: #d4c4a8;
+            --color-highlight: #f0d68a;
+            --color-highlight-text: #5c4520;
+            --color-hover: #f5edda;
+            --shadow-sm: 0 1px 3px rgba(139, 69, 19, 0.1);
+            --shadow-md: 0 4px 12px rgba(139, 69, 19, 0.15);
+            --shadow-lg: 0 8px 24px rgba(139, 69, 19, 0.2);
+        }
+        
+        /* Green Theme */
+        [data-theme="green"] {
+            --color-primary: #22543d;
+            --color-primary-light: #276749;
+            --color-accent: #d69e2e;
+            --color-criminal: #c53030;
+            --color-civil: #2b6cb0;
+            --color-other: #38a169;
+            --color-text: #1a202c;
+            --color-text-light: #4a5568;
+            --color-bg: #f0fff4;
+            --color-bg-gradient: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            --color-white: #ffffff;
+            --color-surface: #ffffff;
+            --color-border: #c6f6d5;
+            --color-highlight: #fefcbf;
+            --color-highlight-text: #744210;
+            --color-hover: #f0fff4;
+            --shadow-sm: 0 1px 3px rgba(34, 84, 61, 0.1);
+            --shadow-md: 0 4px 12px rgba(34, 84, 61, 0.15);
+            --shadow-lg: 0 8px 24px rgba(34, 84, 61, 0.2);
+        }
+        
+        /* Font Size Levels */
+        [data-fontsize="small"] {
+            --base-font-size: 13px;
+            --title-font-size: 24px;
+            --article-font-size: 13px;
+        }
+        [data-fontsize="normal"] {
+            --base-font-size: 15px;
+            --title-font-size: 28px;
+            --article-font-size: 15px;
+        }
+        [data-fontsize="large"] {
+            --base-font-size: 17px;
+            --title-font-size: 32px;
+            --article-font-size: 17px;
+        }
+        [data-fontsize="xlarge"] {
+            --base-font-size: 19px;
+            --title-font-size: 36px;
+            --article-font-size: 19px;
+        }
+
         /* ═══════════════════════════════════ */
-        /* Reset & Base                        */
+        /* Base Styles                         */
         /* ═══════════════════════════════════ */
         * {
             margin: 0;
@@ -56,13 +142,29 @@
         }
 
         body {
-            font-family: var(--font-sans);
-            font-size: 15px;
+            font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
+            font-size: var(--base-font-size, 15px);
             line-height: 1.9;
             color: var(--color-text);
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: var(--color-bg-gradient);
             min-height: 100vh;
             padding: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        /* ═══════════════════════════════════ */
+        /* Reading Progress Bar                */
+        /* ═══════════════════════════════════ */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(to right, var(--color-accent), var(--color-primary));
+            z-index: 1001;
+            transition: width 0.1s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         /* ═══════════════════════════════════ */
@@ -71,18 +173,19 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background: var(--color-white);
-            border-radius: var(--radius-lg);
+            background: var(--color-surface);
+            border-radius: 16px;
             box-shadow: var(--shadow-lg);
             overflow: hidden;
-            padding-bottom: 80px;
+            padding-bottom: 100px;
+            transition: all 0.3s ease;
         }
 
         /* ═══════════════════════════════════ */
         /* Header                              */
         /* ═══════════════════════════════════ */
         .header {
-            background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #2b6cb0 100%);
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
             padding: 40px 30px;
             text-align: center;
@@ -115,14 +218,13 @@
         }
 
         .header h1 {
-            font-family: var(--font-title);
-            font-size: 28px;
+            font-family: 'Battambang', 'Moul', serif;
+            font-size: var(--title-font-size, 28px);
             font-weight: 700;
             margin-bottom: 8px;
             position: relative;
             z-index: 1;
             text-shadow: 0 2px 4px rgba(0,0,0,0.15);
-            letter-spacing: 0.5px;
         }
 
         .header .subtitle {
@@ -137,7 +239,7 @@
         /* Search Info Bar                     */
         /* ═══════════════════════════════════ */
         .search-info {
-            background: linear-gradient(to right, #f8fafc, #f1f5f9);
+            background: var(--color-hover);
             padding: 20px 30px;
             border-bottom: 2px solid var(--color-border);
             display: flex;
@@ -158,12 +260,11 @@
         }
 
         .search-query .query-text {
-            background: linear-gradient(120deg, #fef3c7 0%, #fde68a 100%);
+            background: linear-gradient(120deg, var(--color-highlight) 0%, var(--color-highlight) 100%);
             padding: 4px 12px;
-            border-radius: var(--radius-sm);
+            border-radius: 6px;
             font-weight: 500;
             color: var(--color-highlight-text);
-            box-shadow: inset 0 -2px 0 rgba(180, 138, 0, 0.2);
         }
 
         .search-stats {
@@ -172,12 +273,22 @@
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .search-stats span {
             display: flex;
             align-items: center;
             gap: 5px;
+        }
+
+        .reading-time {
+            background: var(--color-primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         /* ═══════════════════════════════════ */
@@ -189,45 +300,45 @@
 
         .doc-header {
             padding: 20px 30px;
-            font-family: var(--font-title);
+            font-family: 'Battambang', serif;
             font-size: 18px;
             font-weight: 700;
             display: flex;
             align-items: center;
             gap: 12px;
             position: sticky;
-            top: 0;
+            top: 4px;
             z-index: 10;
-            background: white;
+            background: var(--color-surface);
             transition: all 0.3s;
         }
 
         .doc-header.criminal {
-            background: linear-gradient(to right, #fff5f5 0%, #fef2f2 40%, white 100%);
+            background: linear-gradient(to right, rgba(197, 48, 48, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-criminal);
             color: var(--color-criminal);
         }
 
         .doc-header.civil {
-            background: linear-gradient(to right, #ebf8ff 0%, #eff6ff 40%, white 100%);
+            background: linear-gradient(to right, rgba(43, 108, 176, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-civil);
             color: var(--color-civil);
         }
 
         .doc-header.other {
-            background: linear-gradient(to right, #f0fff4 0%, #ecfdf5 40%, white 100%);
+            background: linear-gradient(to right, rgba(56, 161, 105, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-other);
             color: var(--color-other);
         }
 
         .doc-count {
-            background: rgba(0,0,0,0.08);
+            background: var(--color-border);
             color: var(--color-text);
             font-size: 12px;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 600;
-            font-family: var(--font-sans);
+            font-family: 'Noto Sans Khmer', sans-serif;
             margin-left: auto;
         }
 
@@ -236,7 +347,7 @@
         /* ═══════════════════════════════════ */
         .article {
             padding: 25px 30px 25px 50px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--color-border);
             transition: all 0.2s ease;
             position: relative;
         }
@@ -254,7 +365,7 @@
         }
 
         .article:hover {
-            background: linear-gradient(to right, #fafbfc, #f8fafc);
+            background: var(--color-hover);
             transform: translateX(2px);
         }
 
@@ -279,19 +390,19 @@
         }
 
         .article-number {
-            font-family: var(--font-title);
+            font-family: 'Battambang', serif;
             font-weight: 700;
             color: var(--color-primary);
             font-size: 17px;
             white-space: nowrap;
-            background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+            background: var(--color-hover);
             padding: 4px 12px;
-            border-radius: var(--radius-sm);
+            border-radius: 6px;
             box-shadow: var(--shadow-sm);
         }
 
         .article-title {
-            font-family: var(--font-serif);
+            font-family: 'Noto Serif Khmer', serif;
             font-weight: 600;
             color: var(--color-text);
             font-size: 16px;
@@ -304,12 +415,38 @@
             font-weight: 700;
         }
 
+        .article-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .article-action-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-light);
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .article-action-btn:hover {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
         /* ═══════════════════════════════════ */
-        /* Article Content - IMPORTANT!        */
+        /* Article Content                     */
         /* ═══════════════════════════════════ */
         .article-content {
             color: var(--color-text);
-            font-size: 15px;
+            font-size: var(--article-font-size, 15px);
             line-height: 2.1;
             text-align: justify;
             padding: 5px 0;
@@ -317,7 +454,7 @@
 
         .article-content p {
             margin-bottom: 14px;
-            text-indent: 30px; /* ⭐ ចូលបន្ទាត់! */
+            text-indent: 30px;
             padding-left: 15px;
             border-left: 2px solid transparent;
             transition: border-color 0.2s;
@@ -331,7 +468,6 @@
             margin-bottom: 0;
         }
 
-        /* ⭐ Numbered Points (១. ២. ៣.) */
         .article-content p.numbered {
             text-indent: 0;
             padding-left: 45px;
@@ -345,16 +481,15 @@
             top: 0;
             font-weight: 700;
             color: var(--color-primary);
-            background: linear-gradient(135deg, #edf2f7, #e2e8f0);
+            background: var(--color-hover);
             padding: 2px 10px;
-            border-radius: var(--radius-sm);
+            border-radius: 6px;
             min-width: 35px;
             text-align: center;
             font-size: 14px;
             box-shadow: var(--shadow-sm);
         }
 
-        /* ⭐ Sub-points (ក. ខ. គ.) */
         .article-content p.sub-numbered {
             text-indent: 0;
             padding-left: 60px;
@@ -368,49 +503,55 @@
             top: 0;
             font-weight: 600;
             color: var(--color-civil);
-            background: #ebf8ff;
+            background: rgba(43, 108, 176, 0.1);
             padding: 2px 8px;
-            border-radius: var(--radius-sm);
+            border-radius: 6px;
             min-width: 30px;
             text-align: center;
             font-size: 13px;
         }
 
         /* ═══════════════════════════════════ */
-        /* Highlight - Subtle & Beautiful      */
+        /* Highlight                           */
         /* ═══════════════════════════════════ */
         .highlight {
-            background: linear-gradient(120deg, #fef3c7 0%, #fde68a 100%);
+            background: var(--color-highlight);
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 600;
             color: var(--color-highlight-text);
-            box-shadow: inset 0 -2px 0 rgba(217, 119, 6, 0.3);
             transition: all 0.2s;
         }
 
-        .highlight:hover {
-            background: linear-gradient(120deg, #fde68a 0%, #fcd34d 100%);
-            box-shadow: inset 0 -2px 0 rgba(217, 119, 6, 0.5);
+        [data-theme="dark"] .highlight {
+            background: rgba(214, 158, 46, 0.3);
+            color: var(--color-accent);
+        }
+
+        /* When highlights disabled */
+        body.no-highlight .highlight {
+            background: none !important;
+            color: inherit !important;
+            padding: 0 !important;
+            font-weight: inherit !important;
         }
 
         /* ═══════════════════════════════════ */
         /* Footer                              */
         /* ═══════════════════════════════════ */
         .footer {
-            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
             padding: 25px 30px;
             text-align: center;
             font-size: 13px;
-            margin-top: 20px;
         }
 
         .footer .bot-name {
             font-weight: 700;
             font-size: 16px;
             margin-bottom: 8px;
-            color: #fef3c7;
+            color: var(--color-accent);
         }
 
         .footer .warning {
@@ -422,14 +563,287 @@
         }
 
         /* ═══════════════════════════════════ */
-        /* Action Bar (Print/Save)             */
+        /* Floating Toolbar (Top Right)        */
+        /* ═══════════════════════════════════ */
+        .toolbar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--color-surface);
+            border-radius: 50px;
+            box-shadow: var(--shadow-lg);
+            padding: 8px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000;
+            border: 1px solid var(--color-border);
+            transition: all 0.3s;
+        }
+
+        .toolbar button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-light);
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: var(--color-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .toolbar button.active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        /* ═══════════════════════════════════ */
+        /* Settings Panel                      */
+        /* ═══════════════════════════════════ */
+        .settings-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: var(--color-surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            display: none;
+            z-index: 999;
+            border: 1px solid var(--color-border);
+        }
+
+        .settings-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-section h4 {
+            font-size: 13px;
+            color: var(--color-text-light);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .settings-options {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .settings-btn {
+            padding: 8px 14px;
+            border: 1px solid var(--color-border);
+            background: var(--color-white);
+            color: var(--color-text);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Noto Sans Khmer', sans-serif;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .settings-btn:hover {
+            background: var(--color-hover);
+            border-color: var(--color-primary);
+        }
+
+        .settings-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .theme-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid var(--color-border);
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            flex: 0 0 auto;
+        }
+
+        .theme-btn.active {
+            border-color: var(--color-primary);
+            transform: scale(1.1);
+        }
+
+        .theme-light {
+            background: linear-gradient(135deg, #ffffff, #f5f7fa);
+        }
+
+        .theme-dark {
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+        }
+
+        .theme-sepia {
+            background: linear-gradient(135deg, #faf3e7, #f0d68a);
+        }
+
+        .theme-green {
+            background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+        }
+
+        /* ═══════════════════════════════════ */
+        /* Table of Contents                   */
+        /* ═══════════════════════════════════ */
+        .toc {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: var(--color-surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            display: none;
+            z-index: 999;
+            border: 1px solid var(--color-border);
+        }
+
+        .toc.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toc h3 {
+            font-size: 14px;
+            color: var(--color-primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .toc a {
+            display: block;
+            padding: 8px 12px;
+            color: var(--color-text-light);
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 6px;
+            margin-bottom: 3px;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+
+        .toc a:hover {
+            background: var(--color-hover);
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+            padding-left: 15px;
+        }
+
+        .toc-article {
+            font-size: 12px !important;
+            padding-left: 25px !important;
+            color: var(--color-text-light) !important;
+        }
+
+        /* ═══════════════════════════════════ */
+        /* Share Panel                         */
+        /* ═══════════════════════════════════ */
+        .share-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: var(--color-surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            display: none;
+            z-index: 999;
+            border: 1px solid var(--color-border);
+        }
+
+        .share-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .share-panel h3 {
+            font-size: 14px;
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .share-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: var(--color-hover);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--color-text);
+        }
+
+        .share-btn:hover {
+            background: var(--color-primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .share-btn-icon {
+            font-size: 24px;
+        }
+
+        .share-btn-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════ */
+        /* Action Bar (Bottom)                 */
         /* ═══════════════════════════════════ */
         .action-bar {
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: white;
+            background: var(--color-surface);
             padding: 12px 20px;
             border-radius: 50px;
             box-shadow: var(--shadow-lg);
@@ -446,7 +860,7 @@
             padding: 10px 24px;
             border: none;
             border-radius: 50px;
-            font-family: var(--font-sans);
+            font-family: 'Noto Sans Khmer', sans-serif;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -466,80 +880,28 @@
             box-shadow: 0 6px 16px rgba(26, 54, 93, 0.4);
         }
 
-        .btn-secondary {
-            background: #edf2f7;
-            color: var(--color-text);
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
         /* ═══════════════════════════════════ */
-        /* Table of Contents (Floating)        */
+        /* Toast Notification                  */
         /* ═══════════════════════════════════ */
-        .toc {
+        .toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 250px;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-            background: white;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            padding: 20px;
-            display: none;
-            z-index: 999;
-        }
-
-        .toc.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(300px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .toc h3 {
-            font-size: 14px;
-            margin-bottom: 12px;
-            color: var(--color-primary);
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--color-border);
-        }
-
-        .toc a {
-            display: block;
-            padding: 6px 10px;
-            color: var(--color-text-light);
-            text-decoration: none;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
             font-size: 13px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 2px;
-            transition: all 0.15s;
+            z-index: 2000;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
-        .toc a:hover {
-            background: #edf2f7;
-            color: var(--color-primary);
-            padding-left: 15px;
-        }
-
-        /* ═══════════════════════════════════ */
-        /* Reading Progress Bar                */
-        /* ═══════════════════════════════════ */
-        .progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 4px;
-            background: linear-gradient(to right, var(--color-accent), var(--color-primary));
-            z-index: 1001;
-            transition: width 0.1s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .toast.show {
+            opacity: 1;
         }
 
         /* ═══════════════════════════════════ */
@@ -547,7 +909,7 @@
         /* ═══════════════════════════════════ */
         @media print {
             body {
-                background: white;
+                background: white !important;
                 padding: 0;
                 font-size: 12px;
             }
@@ -558,9 +920,12 @@
                 box-shadow: none;
                 border-radius: 0;
                 padding-bottom: 0;
+                background: white !important;
             }
 
-            .action-bar, .toc, .progress-bar {
+            .toolbar, .settings-panel, .toc, .share-panel,
+            .action-bar, .progress-bar, .toast,
+            .article-actions {
                 display: none !important;
             }
 
@@ -577,20 +942,12 @@
                 display: none;
             }
 
-            .header .flag {
-                font-size: 28px;
-            }
-
-            .header h1 {
-                font-size: 20px;
-            }
-
             .doc-header {
                 background: #f8fafc !important;
+                position: static;
+                page-break-after: avoid;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                page-break-after: avoid;
-                position: static;
             }
 
             .article {
@@ -601,10 +958,6 @@
             .article-content {
                 font-size: 12px;
                 line-height: 1.8;
-            }
-
-            .article-content p {
-                text-indent: 20px;
             }
 
             @page {
@@ -619,7 +972,7 @@
         @media (max-width: 768px) {
             body {
                 padding: 0;
-                background: white;
+                background: var(--color-surface);
             }
 
             .container {
@@ -628,12 +981,29 @@
                 box-shadow: none;
             }
 
+            .toolbar {
+                top: 10px;
+                right: 10px;
+                padding: 4px;
+            }
+
+            .toolbar button {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .settings-panel, .toc, .share-panel {
+                width: calc(100vw - 20px);
+                right: 10px;
+            }
+
             .header {
                 padding: 25px 15px;
             }
 
             .header h1 {
-                font-size: 22px;
+                font-size: calc(var(--title-font-size, 28px) * 0.8);
             }
 
             .search-info {
@@ -655,26 +1025,9 @@
                 left: 15px;
             }
 
-            .article-content {
-                font-size: 14px;
-                line-height: 2;
-            }
-
             .article-content p {
                 text-indent: 20px;
                 padding-left: 10px;
-            }
-
-            .article-content p.numbered {
-                padding-left: 35px;
-            }
-
-            .article-content p.sub-numbered {
-                padding-left: 45px;
-            }
-
-            .toc {
-                display: none !important;
             }
 
             .action-bar {
@@ -696,23 +1049,116 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+            background: var(--color-hover);
         }
 
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light));
             border-radius: 5px;
         }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--color-primary);
-        }
     </style>
 </head>
-<body>
+<body data-theme="light" data-fontsize="normal">
 
 <!-- Reading Progress Bar -->
 <div class="progress-bar" id="progressBar"></div>
+
+<!-- Floating Toolbar -->
+<div class="toolbar">
+    <button onclick="togglePanel('settings')" title="Settings" id="btnSettings">
+        ⚙️
+    </button>
+    <button onclick="togglePanel('toc')" title="Table of Contents" id="btnToc">
+        📑
+    </button>
+    <button onclick="togglePanel('share')" title="Share" id="btnShare">
+        📤
+    </button>
+    <button onclick="toggleHighlight()" title="Toggle Highlights" id="btnHighlight" class="active">
+        ✨
+    </button>
+    <button onclick="scrollToTop()" title="Scroll to Top">
+        ⬆️
+    </button>
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-panel" id="settingsPanel">
+    <div class="settings-section">
+        <h4>🎨 Theme</h4>
+        <div class="settings-options">
+            <button class="theme-btn theme-light active" onclick="setTheme('light')" title="Light"></button>
+            <button class="theme-btn theme-dark" onclick="setTheme('dark')" title="Dark"></button>
+            <button class="theme-btn theme-sepia" onclick="setTheme('sepia')" title="Sepia"></button>
+            <button class="theme-btn theme-green" onclick="setTheme('green')" title="Green"></button>
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h4>🔤 Font Size</h4>
+        <div class="settings-options">
+            <button class="settings-btn" onclick="setFontSize('small')">A-</button>
+            <button class="settings-btn active" onclick="setFontSize('normal')">A</button>
+            <button class="settings-btn" onclick="setFontSize('large')">A+</button>
+            <button class="settings-btn" onclick="setFontSize('xlarge')">A++</button>
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h4>📏 Reading Mode</h4>
+        <div class="settings-options">
+            <button class="settings-btn active" onclick="setReadingMode('normal')">🔄 Normal</button>
+            <button class="settings-btn" onclick="setReadingMode('focus')">🎯 Focus</button>
+        </div>
+    </div>
+</div>
+
+<!-- Table of Contents -->
+<div class="toc" id="tocPanel">
+    <h3>📑 មាតិកា ({{ total_docs }})</h3>
+    {% for doc_name, articles in grouped_results.items() %}
+    <a href="#doc-{{ loop.index }}">
+        {{ doc_emoji[doc_name] }} {{ doc_name }}
+        <span style="float: right; font-size: 11px; opacity: 0.7;">({{ articles|length }})</span>
+    </a>
+    {% for article in articles[:3] %}
+    <a href="#article-{{ loop.index }}" class="toc-article">
+        📌 មាត្រា {{ article.article }}
+    </a>
+    {% endfor %}
+    {% endfor %}
+</div>
+
+<!-- Share Panel -->
+<div class="share-panel" id="sharePanel">
+    <h3>📤 ចែករំលែក</h3>
+    <div class="share-options">
+        <a href="#" class="share-btn" onclick="shareVia('telegram'); return false;">
+            <span class="share-btn-icon">📱</span>
+            <span class="share-btn-label">Telegram</span>
+        </a>
+        <a href="#" class="share-btn" onclick="shareVia('whatsapp'); return false;">
+            <span class="share-btn-icon">💬</span>
+            <span class="share-btn-label">WhatsApp</span>
+        </a>
+        <a href="#" class="share-btn" onclick="shareVia('facebook'); return false;">
+            <span class="share-btn-icon">📘</span>
+            <span class="share-btn-label">Facebook</span>
+        </a>
+        <a href="#" class="share-btn" onclick="shareVia('email'); return false;">
+            <span class="share-btn-icon">✉️</span>
+            <span class="share-btn-label">Email</span>
+        </a>
+        <a href="#" class="share-btn" onclick="copyLink(); return false;">
+            <span class="share-btn-icon">🔗</span>
+            <span class="share-btn-label">Copy Link</span>
+        </a>
+        <a href="#" class="share-btn" onclick="window.print(); return false;">
+            <span class="share-btn-icon">🖨️</span>
+            <span class="share-btn-label">Print</span>
+        </a>
+    </div>
+</div>
 
 <div class="container">
     <!-- Header -->
@@ -732,6 +1178,7 @@
             <span>📊 {{ total_articles }} មាត្រា</span>
             <span>📚 {{ total_docs }} ច្បាប់</span>
             <span>📅 {{ date }}</span>
+            <span class="reading-time" id="readingTime">⏱️ គណនា...</span>
         </div>
     </div>
 
@@ -745,12 +1192,20 @@
         </div>
 
         {% for article in articles %}
-        <div class="article" id="article-{{ loop.index0 }}-{{ article.article }}">
+        <div class="article" id="article-{{ article.article }}">
             <div class="article-header">
                 <span class="article-number">📌 មាត្រា {{ article.article }}</span>
                 {% if article.title %}
                 <span class="article-title">{{ article.title }}</span>
                 {% endif %}
+                <div class="article-actions">
+                    <button class="article-action-btn" onclick="copyArticle('{{ article.article }}')" title="Copy">
+                        📋
+                    </button>
+                    <button class="article-action-btn" onclick="shareArticle('{{ article.article }}')" title="Share">
+                        📤
+                    </button>
+                </div>
             </div>
             {% if article.body %}
             <div class="article-content">
@@ -773,31 +1228,147 @@
     </div>
 </div>
 
-<!-- Action Bar -->
+<!-- Action Bar (Bottom) -->
 <div class="action-bar">
     <button class="btn btn-primary" onclick="window.print()">
         🖨️ Print / Save PDF
     </button>
-    <button class="btn btn-secondary" onclick="toggleTOC()">
-        📑 មាតិកា
-    </button>
-    <button class="btn btn-secondary" onclick="scrollToTop()">
-        ⬆️
-    </button>
 </div>
 
-<!-- Table of Contents -->
-<div class="toc" id="toc">
-    <h3>📑 មាតិកា</h3>
-    {% for doc_name, articles in grouped_results.items() %}
-    <a href="#doc-{{ loop.index }}">
-        {{ doc_emoji[doc_name] }} {{ doc_name }}
-    </a>
-    {% endfor %}
-</div>
+<!-- Toast for Notifications -->
+<div class="toast" id="toast"></div>
 
 <script>
+    // ═══════════════════════════════════════
+    // State Management
+    // ═══════════════════════════════════════
+    const state = {
+        theme: localStorage.getItem('theme') || 'light',
+        fontSize: localStorage.getItem('fontSize') || 'normal',
+        highlights: localStorage.getItem('highlights') !== 'false',
+        readingMode: 'normal'
+    };
+    
+    // ═══════════════════════════════════════
+    // Initialize
+    // ═══════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', function() {
+        applyState();
+        calculateReadingTime();
+        
+        // Auto-hide mobile tip after 5 seconds
+        showMobileTip();
+    });
+    
+    function applyState() {
+        setTheme(state.theme, true);
+        setFontSize(state.fontSize, true);
+        if (!state.highlights) toggleHighlight(true);
+    }
+    
+    // ═══════════════════════════════════════
+    // Theme Management
+    // ═══════════════════════════════════════
+    function setTheme(theme, silent = false) {
+        state.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // Update active button
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const activeBtn = document.querySelector(`.theme-${theme}`);
+        if (activeBtn) activeBtn.classList.add('active');
+        
+        if (!silent) showToast(`🎨 Theme: ${theme}`);
+    }
+    
+    // ═══════════════════════════════════════
+    // Font Size Management
+    // ═══════════════════════════════════════
+    function setFontSize(size, silent = false) {
+        state.fontSize = size;
+        document.body.setAttribute('data-fontsize', size);
+        localStorage.setItem('fontSize', size);
+        
+        // Update active button
+        document.querySelectorAll('.settings-section:nth-child(2) .settings-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const buttons = document.querySelectorAll('.settings-section:nth-child(2) .settings-btn');
+        const sizeMap = { small: 0, normal: 1, large: 2, xlarge: 3 };
+        if (buttons[sizeMap[size]]) buttons[sizeMap[size]].classList.add('active');
+        
+        if (!silent) showToast(`🔤 Font: ${size}`);
+    }
+    
+    // ═══════════════════════════════════════
+    // Highlight Toggle
+    // ═══════════════════════════════════════
+    function toggleHighlight(silent = false) {
+        state.highlights = !state.highlights;
+        document.body.classList.toggle('no-highlight', !state.highlights);
+        localStorage.setItem('highlights', state.highlights);
+        
+        const btn = document.getElementById('btnHighlight');
+        btn.classList.toggle('active', state.highlights);
+        
+        if (!silent) {
+            showToast(state.highlights ? '✨ Highlights ON' : '✨ Highlights OFF');
+        }
+    }
+    
+    // ═══════════════════════════════════════
+    // Reading Mode
+    // ═══════════════════════════════════════
+    function setReadingMode(mode) {
+        state.readingMode = mode;
+        
+        document.querySelectorAll('.settings-section:nth-child(3) .settings-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        if (mode === 'focus') {
+            document.body.style.background = '#000';
+            document.querySelector('.container').style.background = 'var(--color-surface)';
+            showToast('🎯 Focus mode ON');
+        } else {
+            document.body.style.background = 'var(--color-bg-gradient)';
+            showToast('🔄 Normal mode');
+        }
+    }
+    
+    // ═══════════════════════════════════════
+    // Panel Toggle
+    // ═══════════════════════════════════════
+    function togglePanel(panelName) {
+        // Close all panels first
+        ['settings', 'toc', 'share'].forEach(name => {
+            const panel = document.getElementById(name + 'Panel');
+            const btn = document.getElementById('btn' + name.charAt(0).toUpperCase() + name.slice(1));
+            if (panel && name !== panelName) {
+                panel.classList.remove('show');
+            }
+            if (btn && name !== panelName) {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Toggle selected panel
+        const panel = document.getElementById(panelName + 'Panel');
+        const btn = document.getElementById('btn' + panelName.charAt(0).toUpperCase() + panelName.slice(1));
+        if (panel) {
+            panel.classList.toggle('show');
+            if (btn) btn.classList.toggle('active');
+        }
+    }
+    
+    // ═══════════════════════════════════════
     // Reading Progress Bar
+    // ═══════════════════════════════════════
     window.addEventListener('scroll', function() {
         const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
         const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
@@ -805,34 +1376,98 @@
         document.getElementById("progressBar").style.width = scrolled + "%";
     });
     
-    // Toggle TOC
-    function toggleTOC() {
-        document.getElementById('toc').classList.toggle('show');
+    // ═══════════════════════════════════════
+    // Reading Time Calculator
+    // ═══════════════════════════════════════
+    function calculateReadingTime() {
+        const text = document.querySelector('.container').innerText || '';
+        const words = text.split(/\s+/).length;
+        const wordsPerMinute = 200; // Khmer reading speed
+        const minutes = Math.ceil(words / wordsPerMinute);
+        
+        const timeElement = document.getElementById('readingTime');
+        if (timeElement) {
+            timeElement.innerHTML = `⏱️ ${minutes} នាទី`;
+        }
     }
     
-    // Scroll to top
+    // ═══════════════════════════════════════
+    // Scroll to Top
+    // ═══════════════════════════════════════
     function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     
-    // Auto-detect mobile
-    document.addEventListener('DOMContentLoaded', function() {
+    // ═══════════════════════════════════════
+    // Toast Notification
+    // ═══════════════════════════════════════
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+    
+    // ═══════════════════════════════════════
+    // Share Functions
+    // ═══════════════════════════════════════
+    function shareVia(platform) {
+        const url = window.location.href;
+        const title = document.title;
+        const text = `${title}\n${url}`;
+        
+        const urls = {
+            telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+            whatsapp: `https://wa.me/?text=${encodeURIComponent(text)}`,
+            facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+            email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`
+        };
+        
+        if (urls[platform]) {
+            window.open(urls[platform], '_blank');
+            showToast(`📤 Shared via ${platform}`);
+        }
+    }
+    
+    function copyLink() {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast('🔗 Link copied!');
+        }).catch(() => {
+            showToast('❌ Copy failed');
+        });
+    }
+    
+    // ═══════════════════════════════════════
+    // Article Actions
+    // ═══════════════════════════════════════
+    function copyArticle(articleNum) {
+        const article = document.getElementById(`article-${articleNum}`);
+        if (article) {
+            const text = article.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`📋 មាត្រា ${articleNum} copied!`);
+            });
+        }
+    }
+    
+    function shareArticle(articleNum) {
+        const url = `${window.location.href}#article-${articleNum}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast(`🔗 Link to មាត្រា ${articleNum} copied!`);
+        });
+    }
+    
+    // ═══════════════════════════════════════
+    // Mobile Tip
+    // ═══════════════════════════════════════
+    function showMobileTip() {
         const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobile) {
+        if (!isMobile) return;
+        
+        setTimeout(() => {
             const tip = document.createElement('div');
-            tip.style.cssText = `
-                position: fixed;
-                bottom: 90px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.85);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 25px;
-                font-size: 12px;
-                z-index: 999;
-                animation: fadeInOut 5s forwards;
-            `;
+            tip.className = 'toast show';
+            tip.style.cssText = 'bottom: 90px;';
             
             if (/Android/i.test(navigator.userAgent)) {
                 tip.innerHTML = '💡 ចុច ⋮ → Share → Print → Save PDF';
@@ -841,20 +1476,54 @@
             }
             
             document.body.appendChild(tip);
-            
-            setTimeout(() => tip.remove(), 5000);
+            setTimeout(() => {
+                tip.classList.remove('show');
+                setTimeout(() => tip.remove(), 500);
+            }, 5000);
+        }, 1000);
+    }
+    
+    // ═══════════════════════════════════════
+    // Keyboard Shortcuts
+    // ═══════════════════════════════════════
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + P for Print
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            window.print();
+        }
+        
+        // Ctrl/Cmd + D for Dark mode toggle
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            setTheme(state.theme === 'dark' ? 'light' : 'dark');
+        }
+        
+        // Ctrl/Cmd + Plus/Minus for font size
+        if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+            e.preventDefault();
+            const sizes = ['small', 'normal', 'large', 'xlarge'];
+            const current = sizes.indexOf(state.fontSize);
+            if (current < sizes.length - 1) setFontSize(sizes[current + 1]);
+        }
+        
+        if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+            e.preventDefault();
+            const sizes = ['small', 'normal', 'large', 'xlarge'];
+            const current = sizes.indexOf(state.fontSize);
+            if (current > 0) setFontSize(sizes[current - 1]);
+        }
+        
+        // Escape to close panels
+        if (e.key === 'Escape') {
+            ['settings', 'toc', 'share'].forEach(name => {
+                document.getElementById(name + 'Panel').classList.remove('show');
+                const btn = document.getElementById('btn' + name.charAt(0).toUpperCase() + name.slice(1));
+                if (btn) btn.classList.remove('active');
+            });
         }
     });
 </script>
-
-<style>
-    @keyframes fadeInOut {
-        0% { opacity: 0; transform: translate(-50%, 20px); }
-        20% { opacity: 1; transform: translate(-50%, 0); }
-        80% { opacity: 1; transform: translate(-50%, 0); }
-        100% { opacity: 0; transform: translate(-50%, -20px); }
-    }
-</style>
 
 </body>
 </html>
