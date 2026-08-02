@@ -1507,47 +1507,35 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await handle_smart_category_selection(update, context, action)
             return
 
-        # Preview PDF
-        if data == "action:preview_pdf":
-            session = USER_SESSIONS.get(user_id)
-            if not session or not session.get("results"):
-                await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
-                return
-            
-            preview_data = build_preview_data(session)
-            preview_id = store_preview(preview_data)
-            
-            base_url = RENDER_EXTERNAL_URL.rstrip("/")
-            preview_url = f"{base_url}/preview/{preview_id}"
-            
-            msg = (
-                "🖨️ <b>HTML Preview / Save PDF</b>\n"
-                "━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"🔗 <a href=\"{preview_url}\">👉 ចុចទីនេះដើម្បីបើកមើល</a>\n\n"
-                "📱 <b>របៀប Save PDF:</b>\n\n"
-                "  🤖 <b>Android:</b>\n"
-                "    ចុច ⋮ → Share → Print\n"
-                "    → Save as PDF\n\n"
-                "  🍎 <b>iOS:</b>\n"
-                "    ចុច Share 🔗 → Print 🖨️\n"
-                "    → Pinch out → Save PDF\n\n"
-                "  💻 <b>Desktop:</b>\n"
-                "    Ctrl+P → Save as PDF\n\n"
-                f"📊 {preview_data['total_articles']} មាត្រា | "
-                f"{preview_data['total_docs']} ច្បាប់"
-            )
-            
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌐 បើកមើល", url=preview_url)],
-                [InlineKeyboardButton("⬅️ ត្រឡប់", callback_data="nav:info")]
-            ])
-            
-            await context.bot.send_message(
-                chat_id=chat_id, text=msg,
-                parse_mode=ParseMode.HTML, reply_markup=keyboard,
-                disable_web_page_preview=False
-            )
-            return
+        # ⭐ Preview PDF - Send only button (minimal message)
+if data == "action:preview_pdf":
+    session = USER_SESSIONS.get(user_id)
+    if not session or not session.get("results"):
+        await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
+        return
+    
+    # Build preview
+    preview_data = build_preview_data(session)
+    preview_id = store_preview(preview_data)
+    
+    base_url = RENDER_EXTERNAL_URL.rstrip("/")
+    preview_url = f"{base_url}/preview/{preview_id}"
+    
+    # ⭐ Send minimal button - direct link
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            f"🌐  បើក Preview  ({preview_data['total_articles']} មាត្រា)",
+            url=preview_url
+        )]
+    ])
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"🖨️ Preview Ready! 👇",
+        reply_markup=keyboard,
+        disable_web_page_preview=True
+    )
+    return
 
         # View Article (from popular)
         if data.startswith("viewart:"):
