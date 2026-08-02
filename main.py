@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, abort, send_from_directory
+from flask import Flask, render_template, abort
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -39,19 +39,15 @@ logger = logging.getLogger(__name__)
 USER_SESSIONS = {}
 
 # ═══════════════════════════════════════════════
-# Preview Storage (in-memory with expiry)
+# Preview Storage
 # ═══════════════════════════════════════════════
 PREVIEW_STORE = OrderedDict()
 MAX_PREVIEWS = 200
 
 def store_preview(preview_data):
-    """Store preview data and return unique ID"""
     preview_id = uuid.uuid4().hex[:12]
-    
-    # Clean old previews if too many
     while len(PREVIEW_STORE) >= MAX_PREVIEWS:
         PREVIEW_STORE.popitem(last=False)
-    
     PREVIEW_STORE[preview_id] = {
         "data": preview_data,
         "created": datetime.now().isoformat()
@@ -59,24 +55,23 @@ def store_preview(preview_data):
     return preview_id
 
 def get_preview(preview_id):
-    """Get preview data by ID"""
     entry = PREVIEW_STORE.get(preview_id)
     if entry:
         return entry["data"]
     return None
 
 # ═══════════════════════════════════════════════
-# Flask App (HTML Preview Server)
+# Flask App
 # ═══════════════════════════════════════════════
 flask_app = Flask(__name__, template_folder="templates", static_folder="static")
 
 @flask_app.route("/")
 def index():
-    return "🇰🇭 Cambodia Law Bot v17.5 - Running"
+    return "🇰🇭 Cambodia Law Bot v18.0 - Running"
 
 @flask_app.route("/health")
 def health():
-    return {"status": "ok", "version": "17.5", "previews": len(PREVIEW_STORE)}
+    return {"status": "ok", "version": "18.0", "previews": len(PREVIEW_STORE)}
 
 @flask_app.route("/preview/<preview_id>")
 def preview_page(preview_id):
@@ -215,6 +210,53 @@ def sort_documents_by_priority(docs):
             name = str(doc)
         return (get_doc_priority(name), name)
     return sorted(docs, key=sort_key)
+
+# ═══════════════════════════════════════════════
+# Smart Category Detection
+# ═══════════════════════════════════════════════
+def detect_query_category(query):
+    if not query:
+        return None
+    
+    query_lower = query.lower()
+    
+    criminal_kw = ['លួច', 'សម្លាប់', 'ធ្វើឃាត', 'រំលោភ', 'វាយ', 'ក្លែងបន្លំ', 
+                   'ចោរ', 'ប្លន់', 'ស្រវឹង', 'គ្រឿងញៀន', 'ជាប់គុក', 'ពន្ធនាគារ',
+                   'ព្រហ្មទណ្ឌ', 'ទោស', 'ផ្តន្ទាទោស', 'បទល្មើស', 'ឆបោក',
+                   'ការបំពាន', 'ជនល្មើស', 'ជនរងគ្រោះ']
+    
+    civil_kw = ['កិច្ចសន្យា', 'ដីធ្លី', 'ដី', 'កម្មសិទ្ធិ', 'មរតក', 'លែងលះ',
+                'អាពាហ៍', 'រៀបការ', 'ប្តី', 'ប្រពន្ធ', 'កូន', 'គ្រួសារ',
+                'រដ្ឋប្បវេណី', 'ជួល', 'លក់', 'ទិញ', 'ភោគី', 'អចលនវត្ថុ',
+                'ចលនវត្ថុ', 'សិទ្ធិកាន់កាប់', 'ឧបភោគ', 'អាហារកិច្ច']
+    
+    other_kw = ['ចរាចរណ៍', 'ម៉ូតូ', 'ឡាន', 'មួក', 'ការងារ', 'និយោជក',
+                'កម្មករ', 'បរិស្ថាន', 'ព្រៃឈើ', 'អនីតិជន', 'ប្រាក់ខែ',
+                'បណ្តេញ', 'ការជួល', 'ស្តង់ដារ']
+    
+    scores = {"criminal": 0, "civil": 0, "other": 0}
+    
+    for kw in criminal_kw:
+        if kw in query_lower:
+            scores["criminal"] += 2
+    
+    for kw in civil_kw:
+        if kw in query_lower:
+            scores["civil"] += 2
+    
+    for kw in other_kw:
+        if kw in query_lower:
+            scores["other"] += 2
+    
+    max_score = max(scores.values())
+    if max_score == 0:
+        return None
+    
+    for cat, score in scores.items():
+        if score == max_score:
+            return cat
+    
+    return None
 
 # ═══════════════════════════════════════════════
 # API Calls
@@ -407,10 +449,9 @@ def make_progress_bar(current, total, width=15):
     return f"{bar} {percent}%"
 
 # ═══════════════════════════════════════════════
-# ⭐ v17.5: Build Preview Data for HTML
+# Build Preview Data for HTML
 # ═══════════════════════════════════════════════
 def build_preview_data(session):
-    """Convert session results into HTML template data"""
     results = session.get("all_results", session.get("results", []))
     query = session.get("query", "")
     keywords = session.get("keywords", [])
@@ -433,7 +474,6 @@ def build_preview_data(session):
             content = clean_content(r.get("content", ""))
             title, body = _split_title_and_body(content, article_num)
             
-            # ⭐ NEW: Better body formatting
             body_html = ""
             if body:
                 body_html = format_body_html(body, keywords)
@@ -460,16 +500,10 @@ def build_preview_data(session):
         "doc_emoji": doc_emoji
     }
 
-
 def format_body_html(body, keywords=None):
-    """
-    ⭐ NEW: Format legal text body with beautiful HTML
-    Detects: numbered lists (១. ២. ៣.), sub-lists (ក. ខ. គ.), regular paragraphs
-    """
     if not body:
         return ""
     
-    # Clean up
     body = re.sub(r'\n{3,}', '\n\n', body)
     lines = body.split('\n')
     
@@ -484,13 +518,10 @@ def format_body_html(body, keywords=None):
                 current_para = []
             continue
         
-        # Check for numbered points: ១- ២- ១. ២. 1. 2.
         num_match = re.match(r'^([០-៩\d]+)[\.\-–—។]\s*(.+)$', line)
-        # Check for sub-points: ក- ក. ខ. គ.
         sub_match = re.match(r'^([ក-អ])[\.\-–—។]\s*(.+)$', line)
         
         if num_match:
-            # Flush current paragraph
             if current_para:
                 html_parts.append(_process_paragraph(' '.join(current_para), keywords))
                 current_para = []
@@ -521,35 +552,24 @@ def format_body_html(body, keywords=None):
         else:
             current_para.append(line)
     
-    # Flush remaining
     if current_para:
         html_parts.append(_process_paragraph(' '.join(current_para), keywords))
     
     return ''.join(html_parts)
 
-
 def _process_paragraph(text, keywords=None):
-    """Process a regular paragraph"""
     if not text.strip():
         return ""
     text = _highlight_text(text, keywords)
     return f'<p>{text}</p>'
 
-
 def _highlight_text(text, keywords=None):
-    """Highlight keywords in text"""
     if not text:
         return ""
-    
-    # Escape HTML first
     text = escape_html(text)
-    
     if not keywords:
         return text
-    
-    # Sort keywords by length (longest first) to avoid nested highlights
     sorted_keywords = sorted(keywords, key=len, reverse=True)
-    
     for kw in sorted_keywords:
         if not kw or len(kw) < 2:
             continue
@@ -559,7 +579,6 @@ def _highlight_text(text, keywords=None):
             f'<span class="highlight">{escaped_kw}</span>',
             text
         )
-    
     return text
 
 # ═══════════════════════════════════════════════
@@ -699,38 +718,141 @@ def format_detailed_mode(data, session, pagination_info=None):
     return msg
 
 # ═══════════════════════════════════════════════
-# Document Selection Keyboard
+# Smart Category Selection Menu
+# ═══════════════════════════════════════════════
+def build_smart_category_keyboard(query, suggested=None):
+    buttons = []
+    
+    if suggested == "criminal":
+        buttons.append([InlineKeyboardButton(
+            "⭐  🔴  ព្រហ្មទណ្ឌ  (ណែនាំ)",
+            callback_data="smartcat:criminal"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🔵  រដ្ឋប្បវេណី",
+            callback_data="smartcat:civil"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🟢  ច្បាប់ផ្សេងៗ",
+            callback_data="smartcat:other"
+        )])
+    elif suggested == "civil":
+        buttons.append([InlineKeyboardButton(
+            "🔴  ព្រហ្មទណ្ឌ",
+            callback_data="smartcat:criminal"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "⭐  🔵  រដ្ឋប្បវេណី  (ណែនាំ)",
+            callback_data="smartcat:civil"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🟢  ច្បាប់ផ្សេងៗ",
+            callback_data="smartcat:other"
+        )])
+    elif suggested == "other":
+        buttons.append([InlineKeyboardButton(
+            "🔴  ព្រហ្មទណ្ឌ",
+            callback_data="smartcat:criminal"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🔵  រដ្ឋប្បវេណី",
+            callback_data="smartcat:civil"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "⭐  🟢  ច្បាប់ផ្សេងៗ  (ណែនាំ)",
+            callback_data="smartcat:other"
+        )])
+    else:
+        buttons.append([InlineKeyboardButton(
+            "🔴  ព្រហ្មទណ្ឌ",
+            callback_data="smartcat:criminal"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🔵  រដ្ឋប្បវេណី",
+            callback_data="smartcat:civil"
+        )])
+        buttons.append([InlineKeyboardButton(
+            "🟢  ច្បាប់ផ្សេងៗ",
+            callback_data="smartcat:other"
+        )])
+    
+    buttons.append([InlineKeyboardButton(
+        "━━━━━━━━━━━━━━━━",
+        callback_data="smartcat:separator"
+    )])
+    
+    buttons.append([InlineKeyboardButton(
+        "📚  ស្វែងរកគ្រប់ច្បាប់",
+        callback_data="smartcat:all"
+    )])
+    
+    buttons.append([InlineKeyboardButton(
+        "⚙️  ជ្រើសរើសច្បាប់លម្អិត",
+        callback_data="smartcat:detailed"
+    )])
+    
+    buttons.append([InlineKeyboardButton(
+        "❌  បោះបង់",
+        callback_data="smartcat:cancel"
+    )])
+    
+    return InlineKeyboardMarkup(buttons)
+
+
+def build_smart_category_message(query, search_type="search", suggested=None):
+    if search_type == "article":
+        msg = "📂  <b>ជ្រើសរើសប្រភេទច្បាប់</b>\n"
+        msg += "     <i>ដើម្បីរកមាត្រា</i>\n"
+    else:
+        msg = "📂  <b>ជ្រើសរើសប្រភេទច្បាប់</b>\n"
+        msg += "     <i>ដើម្បីស្វែងរក</i>\n"
+    
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    msg += f"🔍  <b>សំណួរ:</b>\n"
+    msg += f"     <code>{escape_html(query)}</code>\n\n"
+    
+    if suggested:
+        cat_names = {
+            "criminal": "🔴 ព្រហ្មទណ្ឌ",
+            "civil": "🔵 រដ្ឋប្បវេណី",
+            "other": "🟢 ច្បាប់ផ្សេងៗ"
+        }
+        msg += f"💡  <b>ណែនាំសម្រាប់អ្នក:</b>\n"
+        msg += f"     {cat_names.get(suggested, '')}\n\n"
+    
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    msg += "📚  <b>ប្រភេទច្បាប់:</b>\n\n"
+    
+    msg += "🔴  <b>ព្រហ្មទណ្ឌ</b>\n"
+    msg += "     ការលួច • សម្លាប់ • ក្លែងបន្លំ\n"
+    msg += "     រំលោភ • វាយ • គ្រឿងញៀន\n\n"
+    
+    msg += "🔵  <b>រដ្ឋប្បវេណី</b>\n"
+    msg += "     កិច្ចសន្យា • ដីធ្លី • គ្រួសារ\n"
+    msg += "     មរតក • លែងលះ • អចលនវត្ថុ\n\n"
+    
+    msg += "🟢  <b>ច្បាប់ផ្សេងៗ</b>\n"
+    msg += "     ចរាចរណ៍ • ការងារ • បរិស្ថាន\n"
+    msg += "     អនីតិជន • ការជួល • ពាណិជ្ជកម្ម\n"
+    
+    return msg
+
+# ═══════════════════════════════════════════════
+# Document Selection Keyboard (Detailed)
 # ═══════════════════════════════════════════════
 def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type="search"):
     if selected_docs is None:
         selected_docs = []
     buttons = []
 
-    # ⭐ Header - Better styling
     if len(selected_docs) == len(available_docs) and len(available_docs) > 0:
-        buttons.append([
-            InlineKeyboardButton(
-                "☑️  ដកជម្រើសទាំងអស់",
-                callback_data="docsel:none"
-            )
-        ])
+        buttons.append([InlineKeyboardButton("☑️  ដកជម្រើសទាំងអស់", callback_data="docsel:none")])
     else:
-        buttons.append([
-            InlineKeyboardButton(
-                "📋  ជ្រើសរើសទាំងអស់",
-                callback_data="docsel:all"
-            )
-        ])
+        buttons.append([InlineKeyboardButton("📋  ជ្រើសរើសទាំងអស់", callback_data="docsel:all")])
 
-    # Separator (visual break)
-    buttons.append([
-        InlineKeyboardButton(
-            "━━━━━━━━━━━━━━",
-            callback_data="docsel:separator"
-        )
-    ])
+    buttons.append([InlineKeyboardButton("━━━━━━━━━━━━━━", callback_data="docsel:separator")])
 
-    # ⭐ Documents with BETTER numbers + emojis
     khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
                      "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
     
@@ -738,18 +860,13 @@ def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type
         is_selected = doc_name in selected_docs
         check = "✅" if is_selected else "⬜"
         num = khmer_numbers[idx] if idx < len(khmer_numbers) else str(idx + 1)
-        
-        # ⭐ Get category emoji
         cat = get_law_category(doc_name)
-        cat_emoji = cat["emoji"]
         
-        # ⭐ Shorten long names for better display
         display_name = doc_name
-        if len(display_name) > 30:
-            display_name = display_name[:27] + "..."
+        if len(display_name) > 28:
+            display_name = display_name[:25] + "..."
         
-        # ⭐ Format: [✅] ១ • 🔴 ក្រមព្រហ្មទណ្ឌ២០០៩
-        button_text = f"{check}  {num}  {cat_emoji}  {display_name}"
+        button_text = f"{check}  {num}  {cat['emoji']}  {display_name}"
         
         buttons.append([
             InlineKeyboardButton(
@@ -758,58 +875,74 @@ def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type
             )
         ])
 
-    # Separator
-    buttons.append([
-        InlineKeyboardButton(
-            "━━━━━━━━━━━━━━",
-            callback_data="docsel:separator"
-        )
-    ])
+    buttons.append([InlineKeyboardButton("━━━━━━━━━━━━━━", callback_data="docsel:separator")])
 
-    # ⭐ Actions with better labels
-    action_row = []
     if selected_docs:
-        action_row.append(
-            InlineKeyboardButton(
-                f"🔍  ស្វែងរក  ({len(selected_docs)})",
-                callback_data="docsel:confirm"
-            )
-        )
+        buttons.append([InlineKeyboardButton(
+            f"🔍  ស្វែងរក  ({len(selected_docs)})",
+            callback_data="docsel:confirm"
+        )])
     else:
-        action_row.append(
-            InlineKeyboardButton(
-                "⚠️  សូមជ្រើសរើសច្បាប់",
-                callback_data="docsel:warn"
-            )
-        )
+        buttons.append([InlineKeyboardButton(
+            "⚠️  សូមជ្រើសរើសច្បាប់",
+            callback_data="docsel:warn"
+        )])
     
-    buttons.append(action_row)
+    buttons.append([InlineKeyboardButton(
+        "📚  ស្វែងរកទាំងអស់",
+        callback_data="docsel:skip"
+    )])
     
-    # ⭐ Secondary actions
-    buttons.append([
-        InlineKeyboardButton(
-            "📚  ស្វែងរកទាំងអស់",
-            callback_data="docsel:skip"
-        )
-    ])
-    
-    buttons.append([
-        InlineKeyboardButton(
-            "❌  បោះបង់",
-            callback_data="docsel:cancel"
-        )
-    ])
+    buttons.append([InlineKeyboardButton(
+        "❌  បោះបង់",
+        callback_data="docsel:cancel"
+    )])
 
     return InlineKeyboardMarkup(buttons)
 
+
+def build_doc_selection_message(query, available_docs, selected_docs=None, search_type="search"):
+    if selected_docs is None:
+        selected_docs = []
+
+    if search_type == "article":
+        msg = "📂  <b>ជ្រើសរើសច្បាប់</b>\n"
+        msg += "     <i>ដើម្បីរកមាត្រា</i>\n"
+    else:
+        msg = "📂  <b>ជ្រើសរើសច្បាប់</b>\n"
+        msg += "     <i>ដើម្បីស្វែងរក</i>\n"
+
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    msg += f"🔍  <b>សំណួរ:</b>\n"
+    msg += f"     <code>{escape_html(query)}</code>\n\n"
+
+    if selected_docs:
+        msg += f"✅  <b>បានជ្រើសរើស:</b> {len(selected_docs)}/{len(available_docs)} ច្បាប់\n\n"
+        
+        sorted_selected = sort_documents_by_priority(selected_docs)
+        khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០"]
+        
+        msg += "<b>📋 ច្បាប់ដែលបានជ្រើសរើស:</b>\n"
+        for i, doc in enumerate(sorted_selected):
+            num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
+            cat = get_law_category(doc)
+            msg += f"   {num}. {cat['emoji']}  {escape_html(doc)}\n"
+    else:
+        msg += "⬜  <i>មិនទាន់បានជ្រើសរើសច្បាប់ទេ</i>\n\n"
+        msg += "💡  <b>ការណែនាំ:</b>\n"
+        msg += "     ចុចលើច្បាប់ដើម្បីជ្រើសរើស\n"
+        msg += "     អាចជ្រើសរើសច្បាប់ ១ ឬច្រើនបាន"
+
+    return msg
+
 # ═══════════════════════════════════════════════
-# ⭐ v17.5: Navigation Keyboard (+ Preview button)
+# Navigation Keyboard
 # ═══════════════════════════════════════════════
 def build_navigation_keyboard(session):
     pagination = paginate_results(session["results"], session["page"])
     buttons = []
 
-    # Row 1: Navigation
     nav_row = []
     if pagination["has_prev"]:
         nav_row.append(InlineKeyboardButton("⬅️ ថយ", callback_data="nav:prev"))
@@ -821,7 +954,6 @@ def build_navigation_keyboard(session):
         nav_row.append(InlineKeyboardButton("បន្ត ➡️", callback_data="nav:next"))
     buttons.append(nav_row)
 
-    # Row 2: View Mode + Preview
     mode = session.get("view_mode", "preview")
     view_row = []
     if mode == "preview":
@@ -829,11 +961,9 @@ def build_navigation_keyboard(session):
     else:
         view_row.append(InlineKeyboardButton("📋 មើលសង្ខេប", callback_data="mode:preview"))
     
-    # ⭐ NEW: HTML Preview / PDF button
     view_row.append(InlineKeyboardButton("🖨️ Preview/PDF", callback_data="action:preview_pdf"))
     buttons.append(view_row)
 
-    # Filter
     results = session.get("all_results", session["results"])
     categories = set()
     for r in results:
@@ -851,7 +981,6 @@ def build_navigation_keyboard(session):
                 filter_row.append(InlineKeyboardButton("🟢 ផ្សេងៗ", callback_data="filter:other"))
         buttons.append(filter_row)
 
-    # Actions
     buttons.append([
         InlineKeyboardButton("📂 ប្តូរច្បាប់", callback_data="action:reselect_docs"),
         InlineKeyboardButton("🔍 ថ្មី", callback_data="action:new_search"),
@@ -1006,13 +1135,98 @@ async def try_recover_session(update, is_callback=True):
     )
 
 # ═══════════════════════════════════════════════
-# Document Selection Flow
+# Smart Category Selection Flow
+# ═══════════════════════════════════════════════
+async def show_smart_category_menu(update, context, query, search_type="search", article_num=None):
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    
+    suggested = detect_query_category(query)
+    
+    session_data = {
+        "pending_query": query,
+        "pending_article": article_num,
+        "search_type": search_type,
+        "mode": "category_selection",
+        "suggested_category": suggested
+    }
+    update_session(user_id, session_data)
+    
+    display_query = f"មាត្រា {article_num}" if search_type == "article" else query
+    
+    msg = build_smart_category_message(display_query, search_type, suggested)
+    keyboard = build_smart_category_keyboard(display_query, suggested)
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard
+    )
+
+async def handle_smart_category_selection(update, context, category):
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    session = USER_SESSIONS.get(user_id, {})
+    
+    query = session.get("pending_query", "")
+    article_num = session.get("pending_article")
+    search_type = session.get("search_type", "search")
+    
+    if category == "detailed":
+        await start_doc_selection(update, context, query, search_type, article_num)
+        return
+    
+    loading_msg = await context.bot.send_message(
+        chat_id=chat_id,
+        text="📂 កំពុងទាញច្បាប់..."
+    )
+    
+    docs_data = list_docs()
+    
+    try:
+        await loading_msg.delete()
+    except:
+        pass
+    
+    if not docs_data.get("success"):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ មិនអាចទាញច្បាប់បានទេ"
+        )
+        return
+    
+    all_docs = [d["name"] for d in docs_data.get("documents", [])]
+    
+    if category == "all":
+        filtered_docs = None
+    else:
+        filtered_docs = [
+            doc for doc in all_docs 
+            if get_law_category(doc)["category"] == category
+        ]
+        
+        if not filtered_docs:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"⚠️ គ្មានច្បាប់ក្នុងប្រភេទនេះទេ"
+            )
+            return
+    
+    if search_type == "article" and article_num:
+        await execute_article_search(update, context, article_num, doc_filter=filtered_docs)
+    else:
+        await execute_keyword_search(update, context, query, doc_filter=filtered_docs)
+
+# ═══════════════════════════════════════════════
+# Document Selection Flow (Detailed)
 # ═══════════════════════════════════════════════
 async def start_doc_selection(update, context, query, search_type="search", article_num=None):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
-    loading_text = f"📂 កំពុងទាញបញ្ជីច្បាប់សម្រាប់មាត្រា {escape_html(str(article_num))}..." if search_type == "article" else "📂 កំពុងទាញបញ្ជីច្បាប់..."
+    loading_text = f"📂 កំពុងទាញបញ្ជីច្បាប់..."
+
     loading_msg = await context.bot.send_message(chat_id=chat_id, text=loading_text, parse_mode=ParseMode.HTML)
     docs_data = list_docs()
     try:
@@ -1178,7 +1392,7 @@ async def execute_article_search(update, context, article_num, doc_filter=None):
     await send_results_to_chat(context.bot, chat_id, USER_SESSIONS[user_id], user_id=user_id)
 
 # ═══════════════════════════════════════════════
-# Popular & Analytics
+# Popular Articles
 # ═══════════════════════════════════════════════
 async def show_popular_articles(context, chat_id):
     status_msg = await context.bot.send_message(chat_id=chat_id, text="🔥 កំពុងទាញ...")
@@ -1264,19 +1478,19 @@ async def show_analytics(context, chat_id, user_id, days=7):
 # Process Queries
 # ═══════════════════════════════════════════════
 async def process_search_query(update, context, query):
-    await start_doc_selection(update, context, query, search_type="search")
+    await show_smart_category_menu(update, context, query, search_type="search")
 
 async def process_article_query(update, context, article_num, doc_name=None):
     if doc_name:
         await execute_article_search(update, context, article_num, doc_filter=[doc_name])
     else:
-        await start_doc_selection(
+        await show_smart_category_menu(
             update, context, f"មាត្រា {article_num}",
             search_type="article", article_num=article_num
         )
-
+		
 # ═══════════════════════════════════════════════
-# ⭐ v17.5: Callback Handler (+ Preview PDF)
+# Callback Handler
 # ═══════════════════════════════════════════════
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1292,22 +1506,43 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"query.answer() failed: {e}")
 
     try:
-        # ⭐ v17.5: Preview PDF Handler
+        # Smart Category Selection
+        if data.startswith("smartcat:"):
+            action = data.split(":")[1]
+            
+            if action == "separator":
+                return
+            
+            if action == "cancel":
+                try:
+                    await query.message.delete()
+                except:
+                    pass
+                USER_SESSIONS.pop(user_id, None)
+                save_sessions()
+                return
+            
+            try:
+                await query.message.delete()
+            except:
+                pass
+            
+            await handle_smart_category_selection(update, context, action)
+            return
+
+        # Preview PDF
         if data == "action:preview_pdf":
             session = USER_SESSIONS.get(user_id)
             if not session or not session.get("results"):
                 await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
                 return
             
-            # Build preview data
             preview_data = build_preview_data(session)
             preview_id = store_preview(preview_data)
             
-            # Build URL
             base_url = RENDER_EXTERNAL_URL.rstrip("/")
             preview_url = f"{base_url}/preview/{preview_id}"
             
-            # Send link with instructions
             msg = (
                 "🖨️ <b>HTML Preview / Save PDF</b>\n"
                 "━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -1322,8 +1557,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "  💻 <b>Desktop:</b>\n"
                 "    Ctrl+P → Save as PDF\n\n"
                 f"📊 {preview_data['total_articles']} មាត្រា | "
-                f"{preview_data['total_docs']} ច្បាប់\n"
-                "⏰ <i>Link មានសុពលភាព ១ ម៉ោង</i>"
+                f"{preview_data['total_docs']} ច្បាប់"
             )
             
             keyboard = InlineKeyboardMarkup([
@@ -1361,8 +1595,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await show_analytics(context, chat_id, user_id, days=days)
             return
 
-        # Document Selection
+        # Document Selection (Detailed)
         if data.startswith("docsel:"):
+            action = data.split(":", 1)[1] if ":" in data else ""
+            
+            if action == "separator":
+                return
+            
             session = USER_SESSIONS.get(user_id)
             if not session or session.get("mode") != "doc_selection":
                 await query.answer("⚠️ សូមចាប់ផ្ដើមស្វែងរកថ្មី", show_alert=True)
@@ -1449,9 +1688,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             original_query = session.get("original_query", session.get("query", ""))
             original_article = session.get("original_article", None)
             if search_type == "article" and original_article:
-                await start_doc_selection(update, context, original_query, search_type="article", article_num=original_article)
+                await show_smart_category_menu(update, context, original_query, search_type="article", article_num=original_article)
             else:
-                await start_doc_selection(update, context, original_query, search_type="search")
+                await show_smart_category_menu(update, context, original_query, search_type="search")
             return
 
         # Navigation
@@ -1543,7 +1782,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif data.startswith("quick:"):
             search_term = data.split(":", 1)[1]
-            await start_doc_selection(update, context, search_term, search_type="search")
+            await show_smart_category_menu(update, context, search_term, search_type="search")
 
         elif data == "action:new_search":
             await context.bot.send_message(
@@ -1562,16 +1801,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await show_popular_articles(context, chat_id)
         elif data == "action:help":
             msg = (
-                "📖 <b>ជំនួយ Bot v17.5</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+                "📖 <b>ជំនួយ Bot v18.0</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
                 "🔍 <code>លួច</code> → ស្វែងរក\n"
                 "📌 <code>មាត្រា ៥៥</code> → រកមាត្រា\n"
                 "📌 <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code> → រកផ្ទាល់\n\n"
-                "🤖 <b>Features:</b>\n"
-                "  🔥 មាត្រាពេញនិយម\n"
-                "  🤖 AI តម្រៀបលទ្ធផល\n"
-                "  🖨️ HTML Preview / Save PDF\n\n"
+                "🎯 <b>Features ថ្មី v18:</b>\n"
+                "  🤖 Smart Category (AI recommend)\n"
+                "  🔴 ព្រហ្មទណ្ឌ / 🔵 រដ្ឋប្បវេណី / 🟢 ផ្សេងៗ\n"
+                "  🖨️ HTML Preview + PDF\n"
+                "  🎨 Themes (Light/Dark/Sepia/Green)\n"
+                "  🔤 Font Size Controls\n\n"
                 "🎯 <b>Commands:</b>\n"
-                "  /start /popular /docs /help /preview"
+                "  /start /popular /docs /help"
             )
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
         elif data == "action:docs":
@@ -1606,7 +1847,7 @@ async def start_from_callback(query):
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍! 🤖 AI-Powered v17.5"
+        "សូមស្វាគមន៍! 🤖 AI-Powered v18.0"
     )
     await query.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=build_start_keyboard())
 
@@ -1618,29 +1859,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╔═══════════════════╗\n"
         "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>  ║\n"
         "╚═══════════════════╝\n\n"
-        "សូមស្វាគមន៍! 🤖 <i>v17.5</i>\n\n"
+        "សូមស្វាគមន៍! 🤖 <i>v18.0 Smart</i>\n\n"
         "📌 <b>របៀបប្រើ:</b>\n"
         "  • វាយពាក្យគន្លឹះ\n"
         "  • វាយ <code>មាត្រា ៥៥</code>\n"
         "  • វាយ <code>មាត្រា ៥ ព្រហ្មទណ្ឌ</code>\n\n"
-        "✨ <b>Features:</b>\n"
-        "  🤖 AI Rerank\n"
-        "  🔥 មាត្រាពេញនិយម\n"
-        "  🖨️ HTML Preview / Save PDF"
+        "✨ <b>Features v18.0:</b>\n"
+        "  🤖 Smart Category (AI recommends)\n"
+        "  🎨 4 Themes + Dark Mode\n"
+        "  🔤 Font Size Controls\n"
+        "  🖨️ HTML Preview + PDF"
     )
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=build_start_keyboard())
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
-        "📖 <b>ជំនួយ v17.5</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📖 <b>ជំនួយ v18.0</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
         "🔍 <code>លួច</code> → ស្វែងរក\n"
         "📌 <code>មាត្រា ៥៥</code> → រកមាត្រា\n\n"
-        "🖨️ <b>Save PDF:</b>\n"
-        "  ស្វែងរក → ចុច 🖨️ Preview/PDF\n"
-        "  → បើក Link → Print → Save\n\n"
         "🎯 <b>Commands:</b>\n"
-        "  /start /popular /docs /clear\n"
-        "  /article /stats /preview"
+        "  /start /popular /docs /clear /article /stats /preview"
     )
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
@@ -1660,16 +1898,21 @@ async def docs_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not data.get("success"):
         await update.message.reply_text(f"❌ {data.get('error')}")
         return
+    
     docs = data.get("documents", [])
     docs_sorted = sort_documents_by_priority(docs)
+    
     msg = f"📚 <b>ឯកសារច្បាប់ទាំងអស់ ({len(docs_sorted)}):</b>\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
     khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
                      "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
+    
     for i, d in enumerate(docs_sorted):
         num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
         msg += f"<b>{num}.</b> {escape_html(d['name'])}\n"
         msg += f"     <i>{d['size']:,} តួអក្សរ</i>\n\n"
+    
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 async def article_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1693,17 +1936,14 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = int(context.args[0])
     await show_analytics(context, update.effective_chat.id, update.effective_user.id, days=days)
 
-# ⭐ v17.5: /preview command
 async def preview_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Generate preview from current session"""
     user_id = update.effective_user.id
     session = USER_SESSIONS.get(user_id)
     
     if not session or not session.get("results"):
         await update.message.reply_text(
             "⚠️ <b>មិនមានលទ្ធផលដើម្បី preview</b>\n\n"
-            "សូមស្វែងរកមុនសិន ហើយចុច /preview\n"
-            "ឬចុចប៊ូតុង 🖨️ Preview/PDF",
+            "សូមស្វែងរកមុនសិន ហើយចុច /preview",
             parse_mode=ParseMode.HTML
         )
         return
@@ -1742,11 +1982,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await process_search_query(update, context, query)
 
 # ═══════════════════════════════════════════════
-# ⭐ v17.5: Flask Server (runs in thread)
+# Flask Server (runs in thread)
 # ═══════════════════════════════════════════════
 def run_flask_server():
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🌐 Production server starting on port {port}")
+    logger.info(f"🌐 Flask server starting on port {port}")
     try:
         from waitress import serve
         serve(flask_app, host="0.0.0.0", port=port, threads=4)
@@ -1763,14 +2003,13 @@ def main():
         return
 
     logger.info("=" * 50)
-    logger.info("🤖 Bot v17.5 (HTML Preview + PDF Save)")
+    logger.info("🤖 Bot v18.0 - Smart Category + HTML Preview")
     logger.info(f"📊 Admin IDs: {ADMIN_IDS}")
     logger.info(f"🌐 URL: {RENDER_EXTERNAL_URL}")
     logger.info("=" * 50)
 
     load_sessions()
     
-    # ⭐ Start Flask in background thread
     threading.Thread(target=run_flask_server, daemon=True).start()
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
