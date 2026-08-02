@@ -8,7 +8,7 @@
     <!-- ⭐ Only Noto Sans Khmer -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&family=Moul&family=Bayon&display=swap" rel="stylesheet">
 
     <style>
         /* Theme Variables */
@@ -540,6 +540,18 @@
             font-size: 13px;
         }
 
+        /* ⭐ Creator Name - Decorative Font (ឆ្លាក់) */
+.footer .creator-name {
+    font-family: 'Moul', 'Bayon', 'Noto Sans Khmer', serif !important;
+    font-weight: 400;
+    font-size: 16px;  /* Same size as bot-name */
+    color: var(--color-accent);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    line-height: 1.6;
+}
+        
         .footer .bot-name {
             font-weight: 700;
             font-size: 16px;
@@ -1028,7 +1040,18 @@
                 font-size: 9pt !important;
             }
 
-            .footer .bot-name { color: #d69e2e !important; }
+/* ⭐ Print: Creator name */
+.footer .creator-name {
+    font-family: 'Moul', serif !important;
+    color: #d69e2e !important;
+    font-size: 12pt !important;
+    margin-bottom: 8pt !important;
+    letter-spacing: 1px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+.footer .bot-name { color: #d69e2e !important; }
         }
     </style>
 </head>
@@ -1138,11 +1161,12 @@
     {% endfor %}
 
     <div class="footer">
-        <div class="bot-name">🤖 Cambodia Legal Bot v18.0</div>
-        <div>បង្កើតនៅ {{ datetime_full }}</div>
-        <div class="warning">
-            ⚠️ ឯកសារនេះសម្រាប់ជាឯកសារយោង មិនមែនជាដំបូន្មានផ្នែកច្បាប់ទេ។<br>
-            សូមពិគ្រោះជាមួយមេធាវីសម្រាប់ករណីជាក់ស្តែង។
+        <div class="creator-name">រៀបចំដោយ លោក តូច មានរឹទ្ធិ</div>
+    <div class="bot-name">🤖 Cambodia Legal Bot v18.0</div>
+    <div>បង្កើតនៅ {{ datetime_full }}</div>
+    <div class="warning">
+        ⚠️ ឯកសារនេះសម្រាប់ជាឯកសារយោង មិនមែនជាដំបូន្មានផ្នែកច្បាប់ទេ។<br>
+        សូមពិគ្រោះជាមួយមេធាវីសម្រាប់ករណីជាក់ស្តែង។
         </div>
     </div>
 </div>
