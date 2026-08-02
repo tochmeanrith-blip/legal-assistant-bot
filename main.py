@@ -706,11 +706,31 @@ def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type
         selected_docs = []
     buttons = []
 
+    # ⭐ Header - Better styling
     if len(selected_docs) == len(available_docs) and len(available_docs) > 0:
-        buttons.append([InlineKeyboardButton("☑️ ដកជម្រើសទាំងអស់", callback_data="docsel:none")])
+        buttons.append([
+            InlineKeyboardButton(
+                "☑️  ដកជម្រើសទាំងអស់",
+                callback_data="docsel:none"
+            )
+        ])
     else:
-        buttons.append([InlineKeyboardButton("📋 ជ្រើសរើសទាំងអស់", callback_data="docsel:all")])
+        buttons.append([
+            InlineKeyboardButton(
+                "📋  ជ្រើសរើសទាំងអស់",
+                callback_data="docsel:all"
+            )
+        ])
 
+    # Separator (visual break)
+    buttons.append([
+        InlineKeyboardButton(
+            "━━━━━━━━━━━━━━",
+            callback_data="docsel:separator"
+        )
+    ])
+
+    # ⭐ Documents with BETTER numbers + emojis
     khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០",
                      "១១", "១២", "១៣", "១៤", "១៥", "១៦", "១៧", "១៨", "១៩", "២០"]
     
@@ -718,49 +738,69 @@ def build_doc_selection_keyboard(available_docs, selected_docs=None, search_type
         is_selected = doc_name in selected_docs
         check = "✅" if is_selected else "⬜"
         num = khmer_numbers[idx] if idx < len(khmer_numbers) else str(idx + 1)
+        
+        # ⭐ Get category emoji
+        cat = get_law_category(doc_name)
+        cat_emoji = cat["emoji"]
+        
+        # ⭐ Shorten long names for better display
+        display_name = doc_name
+        if len(display_name) > 30:
+            display_name = display_name[:27] + "..."
+        
+        # ⭐ Format: [✅] ១ • 🔴 ក្រមព្រហ្មទណ្ឌ២០០៩
+        button_text = f"{check}  {num}  {cat_emoji}  {display_name}"
+        
         buttons.append([
             InlineKeyboardButton(
-                f"{check} {num}. {doc_name}",
+                button_text,
                 callback_data=f"docsel:toggle:{idx}"
             )
         ])
 
+    # Separator
+    buttons.append([
+        InlineKeyboardButton(
+            "━━━━━━━━━━━━━━",
+            callback_data="docsel:separator"
+        )
+    ])
+
+    # ⭐ Actions with better labels
     action_row = []
     if selected_docs:
-        action_row.append(InlineKeyboardButton(f"🔍 ស្វែងរក ({len(selected_docs)})", callback_data="docsel:confirm"))
+        action_row.append(
+            InlineKeyboardButton(
+                f"🔍  ស្វែងរក  ({len(selected_docs)})",
+                callback_data="docsel:confirm"
+            )
+        )
     else:
-        action_row.append(InlineKeyboardButton("សូមជ្រើសរើសច្បាប់", callback_data="docsel:warn"))
-    action_row.append(InlineKeyboardButton("ស្វែងរកទាំងអស់", callback_data="docsel:skip"))
+        action_row.append(
+            InlineKeyboardButton(
+                "⚠️  សូមជ្រើសរើសច្បាប់",
+                callback_data="docsel:warn"
+            )
+        )
+    
     buttons.append(action_row)
-    buttons.append([InlineKeyboardButton("❌ បោះបង់", callback_data="docsel:cancel")])
+    
+    # ⭐ Secondary actions
+    buttons.append([
+        InlineKeyboardButton(
+            "📚  ស្វែងរកទាំងអស់",
+            callback_data="docsel:skip"
+        )
+    ])
+    
+    buttons.append([
+        InlineKeyboardButton(
+            "❌  បោះបង់",
+            callback_data="docsel:cancel"
+        )
+    ])
 
     return InlineKeyboardMarkup(buttons)
-
-def build_doc_selection_message(query, available_docs, selected_docs=None, search_type="search"):
-    if selected_docs is None:
-        selected_docs = []
-
-    if search_type == "article":
-        msg = "📂 <b>ជ្រើសរើសច្បាប់ដើម្បីរកមាត្រា</b>\n"
-    else:
-        msg = "📂 <b>ជ្រើសរើសច្បាប់ដើម្បីស្វែងរក</b>\n"
-
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    msg += f"🔍 <b>សំណួរ:</b> <code>{escape_html(query)}</code>\n\n"
-
-    if selected_docs:
-        msg += f"✅ <b>បានជ្រើសរើស {len(selected_docs)}/{len(available_docs)} ច្បាប់:</b>\n"
-        sorted_selected = sort_documents_by_priority(selected_docs)
-        khmer_numbers = ["១", "២", "៣", "៤", "៥", "៦", "៧", "៨", "៩", "១០"]
-        for i, doc in enumerate(sorted_selected):
-            num = khmer_numbers[i] if i < len(khmer_numbers) else str(i + 1)
-            msg += f"   {num}. {escape_html(doc)}\n"
-    else:
-        msg += "⬜ <i>មិនទាន់បានជ្រើសរើសច្បាប់ទេ</i>\n"
-
-    msg += "\n💡 <i>ចុចលើច្បាប់ដើម្បីជ្រើសរើស</i>\n"
-    msg += "<i>អាចជ្រើសរើសច្បាប់ 1 ឬច្រើនបាន</i>"
-    return msg
 
 # ═══════════════════════════════════════════════
 # ⭐ v17.5: Navigation Keyboard (+ Preview button)
