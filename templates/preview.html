@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
 
-    <!-- ⭐ Only Noto Sans Khmer -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=Battambang:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         /* Theme Variables */
@@ -126,7 +125,7 @@
             --line-height: 2.0;
         }
 
-        /* ⭐ Force ALL elements to use Noto Sans Khmer */
+        /* Force ALL elements to use Noto Sans Khmer */
         * {
             font-family: 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, sans-serif !important;
             margin: 0;
@@ -434,18 +433,6 @@
             margin-bottom: 14px;
         }
 
-​​​​​​​        /* ⭐ Print dash items */
-.article-content p.dash-item {
-    padding-left: 25pt !important;
-    text-indent: 0 !important;
-    margin-bottom: 6pt !important;
-}
-
-.article-content p.dash-item .dash-label {
-    color: #d69e2e !important;
-    font-size: 12pt !important;
-}
-        
         .article-content p.numbered .num-label {
             position: absolute;
             left: 0;
@@ -468,17 +455,6 @@
             margin-bottom: 10px;
         }
 
-        /* ⭐ Mobile dash items */
-.article-content p.dash-item {
-    padding-left: 25px;
-    margin-bottom: 8px;
-}
-
-.article-content p.dash-item .dash-label {
-    left: 8px;
-    font-size: 16px;
-}
-
         .article-content p.sub-numbered .sub-label {
             position: absolute;
             left: 15px;
@@ -493,23 +469,23 @@
             font-size: 13px;
         }
 
-        /* ⭐ NEW: Dash items (- item) */
-.article-content p.dash-item {
-    text-indent: 0;
-    padding-left: 40px;
-    position: relative;
-    margin-bottom: 10px;
-}
+        /* Dash items (- item) */
+        .article-content p.dash-item {
+            text-indent: 0;
+            padding-left: 40px;
+            position: relative;
+            margin-bottom: 10px;
+        }
 
-.article-content p.dash-item .dash-label {
-    position: absolute;
-    left: 15px;
-    top: 0;
-    font-weight: 700;
-    color: var(--color-accent);
-    font-size: 18px;
-    line-height: 1.5;
-}
+        .article-content p.dash-item .dash-label {
+            position: absolute;
+            left: 15px;
+            top: 0;
+            font-weight: 700;
+            color: var(--color-accent);
+            font-size: 18px;
+            line-height: 1.5;
+        }
 
         .highlight {
             background: var(--color-highlight);
@@ -532,69 +508,65 @@
             font-weight: inherit !important;
         }
 
+        /* ═══════════════════════════════════ */
+        /* FOOTER - Simple & Clean             */
+        /* ═══════════════════════════════════ */
         .footer {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
-            padding: 25px 30px;
+            padding: 30px 30px 25px;
             text-align: center;
-            font-size: 13px;
         }
-        .deco-line {
-    width: 40px;
-}
 
-.deco-icon {
-    font-size: 12px;
-}
+        .creator-section {
+            margin-bottom: 20px;
+        }
 
-.creator-label {
-    font-size: 11px;
-    letter-spacing: 2px;
-}
+        .creator-label {
+            font-family: 'Noto Sans Khmer', sans-serif !important;
+            font-size: 12px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.65);
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
 
-.creator-name {
-    font-size: 20px;
-    letter-spacing: 1.5px;
-    padding: 0 10px;
-}
-
-.footer .bot-name {
-    font-size: 13px;
-}
-
-.creation-date {
-    font-size: 11px;
-}
-
-.footer .warning {
-    font-size: 11px;
-    line-height: 1.6;
-}
-        /* ⭐ Creator Name - Decorative Font (ឆ្លាក់) */
-.footer .creator-name {
-    font-family: 'Moul', 'Bayon', 'Noto Sans Khmer', serif !important;
-    font-weight: 400;
-    font-size: 16px;  /* Same size as bot-name */
-    color: var(--color-accent);
-    margin-bottom: 12px;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    line-height: 1.6;
-}
-        
-        .footer .bot-name {
+        .creator-name {
+            font-family: 'Noto Serif Khmer', 'Noto Sans Khmer', serif !important;
             font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: 18px;
+            color: var(--color-accent);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer .bot-name {
+            font-family: 'Noto Sans Khmer', sans-serif !important;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 6px;
             color: var(--color-accent);
         }
 
-        .footer .warning {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255,255,255,0.2);
+        .creation-date {
             font-size: 12px;
-            opacity: 0.85;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            margin-bottom: 15px;
+        }
+
+        .footer .warning {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 11px;
+            opacity: 0.8;
+            line-height: 1.6;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .toolbar {
@@ -894,6 +866,43 @@
                 padding-left: 42px;
                 margin-bottom: 8px;
             }
+
+            .article-content p.dash-item {
+                padding-left: 25px;
+                margin-bottom: 8px;
+            }
+
+            .article-content p.dash-item .dash-label {
+                left: 8px;
+                font-size: 16px;
+            }
+
+            /* Mobile Footer */
+            .footer {
+                padding: 25px 15px 20px;
+            }
+
+            .creator-label {
+                font-size: 11px;
+                letter-spacing: 1.5px;
+            }
+
+            .creator-name {
+                font-size: 16px;
+            }
+
+            .footer .bot-name {
+                font-size: 13px;
+            }
+
+            .creation-date {
+                font-size: 11px;
+            }
+
+            .footer .warning {
+                font-size: 10px;
+                line-height: 1.5;
+            }
         }
 
         @media (max-width: 400px) {
@@ -1056,6 +1065,17 @@
                 font-size: 10pt !important;
             }
 
+            .article-content p.dash-item {
+                padding-left: 25pt !important;
+                text-indent: 0 !important;
+                margin-bottom: 6pt !important;
+            }
+
+            .article-content p.dash-item .dash-label {
+                color: #d69e2e !important;
+                font-size: 12pt !important;
+            }
+
             .highlight {
                 background: #fef3c7 !important;
                 color: #744210 !important;
@@ -1063,75 +1083,48 @@
                 font-weight: 600 !important;
             }
 
+            /* Print Footer */
             .footer {
-    background: white !important;
-    color: #1a202c !important;
-    padding: 20px !important;
-    font-size: 9pt !important;
-    border-top: 3px double #d69e2e !important;
-}
+                background: white !important;
+                color: #1a202c !important;
+                padding: 20px !important;
+                font-size: 9pt !important;
+                border-top: 3px double #d69e2e !important;
+            }
 
-.footer::before {
-    display: none !important;
-}
+            .creator-section {
+                margin-bottom: 12px !important;
+            }
 
-.creator-section {
-    margin-bottom: 15px !important;
-}
+            .creator-label {
+                color: #666 !important;
+                font-size: 9pt !important;
+                letter-spacing: 1.5px !important;
+            }
 
-.creator-decoration {
-    display: none !important;  /* Hide decorations in print */
-}
+            .creator-name {
+                color: #d69e2e !important;
+                font-size: 14pt !important;
+                margin-bottom: 4px !important;
+                text-shadow: none !important;
+                font-weight: 700 !important;
+            }
 
-.creator-label {
-    color: #666 !important;
-    font-size: 10pt !important;
-    letter-spacing: 2px !important;
-    font-style: italic !important;
-}
+            .footer .bot-name {
+                color: #d69e2e !important;
+                font-size: 11pt !important;
+            }
 
-.creator-name {
-    color: #d69e2e !important;
-    font-size: 20pt !important;
-    -webkit-text-fill-color: #d69e2e !important;
-    background: none !important;
-    text-shadow: none !important;
-    letter-spacing: 1.5px !important;
-    font-weight: 700 !important;
-    display: block !important;
-    margin: 8px 0 !important;
-}
+            .creation-date {
+                color: #666 !important;
+                font-size: 9pt !important;
+            }
 
-.footer .bot-name {
-    color: #d69e2e !important;
-    font-size: 11pt !important;
-}
-
-.creation-date {
-    color: #666 !important;
-    font-size: 10pt !important;
-}
-
-.footer .warning {
-    color: #666 !important;
-    font-size: 9pt !important;
-    border-top-color: #ccc !important;
-}
-
-/* ⭐ Print: Creator name */
-.footer .creator-name {
-    font-family: 'Noto Serif Khmer', serif !important;
-    font-weight: 700;
-    font-style: italic;
-    color: #d69e2e !important;
-    font-size: 12pt !important;
-    margin-bottom: 8pt !important;
-    letter-spacing: 1px !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-}
-
-.footer .bot-name { color: #d69e2e !important; }
+            .footer .warning {
+                color: #666 !important;
+                font-size: 8pt !important;
+                border-top-color: #ccc !important;
+            }
         }
     </style>
 </head>
@@ -1241,172 +1234,19 @@
     {% endfor %}
 
     <div class="footer">
-         <div class="creator-section">
-        <div class="creator-decoration">
-            <span class="deco-line"></span>
-            <span class="deco-icon">✦</span>
-            <span class="deco-line"></span>
+        <div class="creator-section">
+            <div class="creator-label">រៀបចំដោយ</div>
+            <div class="creator-name">លោក តូច មានរឹទ្ធិ</div>
         </div>
-        <div class="creator-label">រៀបចំដោយ</div>
-        <div class="creator-name">លោក តូច មានរឹទ្ធិ</div>
-        <div class="creator-decoration">
-            <span class="deco-line"></span>
-            <span class="deco-icon">✦</span>
-            <span class="deco-line"></span>
-        </div>
-    </div>
-    <div class="footer-info">
         <div class="bot-name">🤖 Cambodia Legal Bot v18.0</div>
         <div class="creation-date">បង្កើតនៅ {{ datetime_full }}</div>
-    </div>
-    <div class="warning">
-        ⚠️ ឯកសារនេះសម្រាប់ជាឯកសារយោង មិនមែនជាដំបូន្មានផ្នែកច្បាប់ទេ។<br>
-        សូមពិគ្រោះជាមួយមេធាវីសម្រាប់ករណីជាក់ស្តែង។
+        <div class="warning">
+            ⚠️ ឯកសារនេះសម្រាប់ជាឯកសារយោង មិនមែនជាដំបូន្មានផ្នែកច្បាប់ទេ។<br>
+            សូមពិគ្រោះជាមួយមេធាវីសម្រាប់ករណីជាក់ស្តែង។
         </div>
     </div>
 </div>
-/* ═══════════════════════════════════ */
-/* FOOTER - Elegant Design             */
-/* ═══════════════════════════════════ */
-.footer {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-    color: white;
-    padding: 40px 30px 30px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
 
-/* Decorative background pattern */
-.footer::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(214, 158, 46, 0.1) 0%, transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(214, 158, 46, 0.08) 0%, transparent 40%);
-    pointer-events: none;
-}
-
-/* Creator Section */
-.creator-section {
-    margin-bottom: 25px;
-    position: relative;
-    z-index: 1;
-}
-
-/* Decorative lines with icon */
-.creator-decoration {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 8px 0;
-}
-
-.deco-line {
-    height: 1px;
-    width: 60px;
-    background: linear-gradient(
-        to right,
-        transparent 0%,
-        var(--color-accent) 50%,
-        transparent 100%
-    );
-    opacity: 0.7;
-}
-
-.deco-icon {
-    color: var(--color-accent);
-    font-size: 14px;
-    opacity: 0.9;
-    animation: sparkle 3s ease-in-out infinite;
-}
-
-@keyframes sparkle {
-    0%, 100% { 
-        opacity: 0.6; 
-        transform: scale(1) rotate(0deg);
-    }
-    50% { 
-        opacity: 1; 
-        transform: scale(1.2) rotate(180deg);
-    }
-}
-
-/* "រៀបចំដោយ" label - Small elegant */
-.creator-label {
-    font-family: 'Noto Serif Khmer', serif !important;
-    font-size: 13px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin: 8px 0;
-    font-style: italic;
-}
-
-/* Name - Elegant handwriting style */
-.creator-name {
-    font-family: 'Kantumruy Pro', 'Noto Serif Khmer', serif !important;
-    font-weight: 600;
-    font-size: 24px;
-    color: #ffd700;  /* Golden color */
-    letter-spacing: 2px;
-    margin: 5px 0;
-    text-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.3),
-        0 0 20px rgba(255, 215, 0, 0.3);
-    line-height: 1.5;
-    background: linear-gradient(135deg, #ffd700 0%, #f6ad55 50%, #ffd700 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    display: inline-block;
-    padding: 0 15px;
-}
-
-/* Footer info block */
-.footer-info {
-    margin-bottom: 20px;
-    position: relative;
-    z-index: 1;
-}
-
-.footer .bot-name {
-    font-family: 'Noto Sans Khmer', sans-serif !important;
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 6px;
-    color: var(--color-accent);
-    letter-spacing: 0.5px;
-}
-
-.creation-date {
-    font-family: 'Noto Sans Khmer', sans-serif !important;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.75);
-    font-weight: 300;
-}
-
-/* Warning section */
-.footer .warning {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    font-size: 11.5px;
-    opacity: 0.8;
-    line-height: 1.7;
-    color: rgba(255, 255, 255, 0.85);
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    position: relative;
-    z-index: 1;
-}
 <div class="toast" id="toast"></div>
 
 <script>
