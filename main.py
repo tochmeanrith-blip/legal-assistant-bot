@@ -501,10 +501,16 @@ def build_preview_data(session):
     }
 
 def format_body_html(body, keywords=None):
+    """Format legal text body with beautiful HTML - Support numbered, sub-numbered, and dash items"""
     if not body:
         return ""
     
     body = re.sub(r'\n{3,}', '\n\n', body)
+    
+    # ⭐ NEW: Split by common list markers to detect items
+    # First, add newlines before dash items that follow spaces
+    body = re.sub(r'\s+(-[^-\s])', r'\n\1', body)
+    
     lines = body.split('\n')
     
     html_parts = []
@@ -518,8 +524,11 @@ def format_body_html(body, keywords=None):
                 current_para = []
             continue
         
+        # Check patterns
         num_match = re.match(r'^([០-៩\d]+)[\.\-–—។]\s*(.+)$', line)
         sub_match = re.match(r'^([ក-អ])[\.\-–—។]\s*(.+)$', line)
+        # ⭐ NEW: Detect dash items (-item or - item)
+        dash_match = re.match(r'^[-–—]\s*(.+)$', line)
         
         if num_match:
             if current_para:
@@ -546,6 +555,20 @@ def format_body_html(body, keywords=None):
             html_parts.append(
                 f'<p class="sub-numbered">'
                 f'<span class="sub-label">{sub_label}</span>'
+                f'{processed_text}'
+                f'</p>'
+            )
+        elif dash_match:
+            # ⭐ NEW: Handle dash items
+            if current_para:
+                html_parts.append(_process_paragraph(' '.join(current_para), keywords))
+                current_para = []
+            
+            text = dash_match.group(1)
+            processed_text = _highlight_text(text, keywords)
+            html_parts.append(
+                f'<p class="dash-item">'
+                f'<span class="dash-label">•</span>'
                 f'{processed_text}'
                 f'</p>'
             )
