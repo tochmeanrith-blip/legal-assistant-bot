@@ -14,7 +14,6 @@
         /* THEME VARIABLES                     */
         /* ═══════════════════════════════════ */
         
-        /* Light Theme (Default) */
         [data-theme="light"] {
             --color-primary: #1a365d;
             --color-primary-light: #2c5282;
@@ -37,7 +36,6 @@
             --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
         }
         
-        /* Dark Theme */
         [data-theme="dark"] {
             --color-primary: #4299e1;
             --color-primary-light: #63b3ed;
@@ -60,7 +58,6 @@
             --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
         }
         
-        /* Sepia Theme */
         [data-theme="sepia"] {
             --color-primary: #8b4513;
             --color-primary-light: #a0522d;
@@ -83,7 +80,6 @@
             --shadow-lg: 0 8px 24px rgba(139, 69, 19, 0.2);
         }
         
-        /* Green Theme */
         [data-theme="green"] {
             --color-primary: #22543d;
             --color-primary-light: #276749;
@@ -106,26 +102,30 @@
             --shadow-lg: 0 8px 24px rgba(34, 84, 61, 0.2);
         }
         
-        /* Font Size Levels */
+        /* Font sizes */
         [data-fontsize="small"] {
             --base-font-size: 13px;
-            --title-font-size: 24px;
+            --title-font-size: 22px;
             --article-font-size: 13px;
+            --line-height: 1.8;
         }
         [data-fontsize="normal"] {
             --base-font-size: 15px;
-            --title-font-size: 28px;
+            --title-font-size: 26px;
             --article-font-size: 15px;
+            --line-height: 1.9;
         }
         [data-fontsize="large"] {
             --base-font-size: 17px;
-            --title-font-size: 32px;
+            --title-font-size: 30px;
             --article-font-size: 17px;
+            --line-height: 2.0;
         }
         [data-fontsize="xlarge"] {
             --base-font-size: 19px;
-            --title-font-size: 36px;
+            --title-font-size: 34px;
             --article-font-size: 19px;
+            --line-height: 2.1;
         }
 
         /* ═══════════════════════════════════ */
@@ -144,7 +144,7 @@
         body {
             font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
             font-size: var(--base-font-size, 15px);
-            line-height: 1.9;
+            line-height: var(--line-height, 1.9);
             color: var(--color-text);
             background: var(--color-bg-gradient);
             min-height: 100vh;
@@ -152,9 +152,7 @@
             transition: all 0.3s ease;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Reading Progress Bar                */
-        /* ═══════════════════════════════════ */
+        /* Reading Progress Bar */
         .progress-bar {
             position: fixed;
             top: 0;
@@ -167,9 +165,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        /* ═══════════════════════════════════ */
-        /* Container                           */
-        /* ═══════════════════════════════════ */
+        /* Container */
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -181,9 +177,7 @@
             transition: all 0.3s ease;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Header                              */
-        /* ═══════════════════════════════════ */
+        /* Header */
         .header {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
@@ -219,7 +213,7 @@
 
         .header h1 {
             font-family: 'Battambang', 'Moul', serif;
-            font-size: var(--title-font-size, 28px);
+            font-size: var(--title-font-size, 26px);
             font-weight: 700;
             margin-bottom: 8px;
             position: relative;
@@ -235,9 +229,7 @@
             z-index: 1;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Search Info Bar                     */
-        /* ═══════════════════════════════════ */
+        /* Search Info */
         .search-info {
             background: var(--color-hover);
             padding: 20px 30px;
@@ -291,9 +283,7 @@
             font-weight: 600;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Document Section                    */
-        /* ═══════════════════════════════════ */
+        /* Document Section */
         .doc-section {
             border-bottom: 1px solid var(--color-border);
         }
@@ -342,9 +332,7 @@
             margin-left: auto;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Article Container                   */
-        /* ═══════════════════════════════════ */
+        /* Article */
         .article {
             padding: 25px 30px 25px 50px;
             border-bottom: 1px solid var(--color-border);
@@ -366,19 +354,12 @@
 
         .article:hover {
             background: var(--color-hover);
-            transform: translateX(2px);
-        }
-
-        .article:hover::before {
-            opacity: 1;
-            width: 4px;
         }
 
         .article:last-child {
             border-bottom: none;
         }
 
-        /* Article Header */
         .article-header {
             display: flex;
             align-items: baseline;
@@ -441,27 +422,19 @@
             border-color: var(--color-primary);
         }
 
-        /* ═══════════════════════════════════ */
-        /* Article Content                     */
-        /* ═══════════════════════════════════ */
+        /* Article Content */
         .article-content {
             color: var(--color-text);
             font-size: var(--article-font-size, 15px);
-            line-height: 2.1;
+            line-height: var(--line-height, 1.9);
             text-align: justify;
             padding: 5px 0;
         }
 
         .article-content p {
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             text-indent: 30px;
             padding-left: 15px;
-            border-left: 2px solid transparent;
-            transition: border-color 0.2s;
-        }
-
-        .article-content p:hover {
-            border-left-color: var(--color-accent);
         }
 
         .article-content p:last-child {
@@ -472,7 +445,7 @@
             text-indent: 0;
             padding-left: 45px;
             position: relative;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .article-content p.numbered .num-label {
@@ -494,7 +467,7 @@
             text-indent: 0;
             padding-left: 60px;
             position: relative;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .article-content p.sub-numbered .sub-label {
@@ -511,9 +484,7 @@
             font-size: 13px;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Highlight                           */
-        /* ═══════════════════════════════════ */
+        /* Highlight */
         .highlight {
             background: var(--color-highlight);
             padding: 2px 6px;
@@ -528,7 +499,6 @@
             color: var(--color-accent);
         }
 
-        /* When highlights disabled */
         body.no-highlight .highlight {
             background: none !important;
             color: inherit !important;
@@ -536,9 +506,7 @@
             font-weight: inherit !important;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Footer                              */
-        /* ═══════════════════════════════════ */
+        /* Footer */
         .footer {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
@@ -562,9 +530,7 @@
             opacity: 0.85;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Floating Toolbar (Top Right)        */
-        /* ═══════════════════════════════════ */
+        /* Toolbar */
         .toolbar {
             position: fixed;
             top: 20px;
@@ -598,7 +564,6 @@
         .toolbar button:hover {
             background: var(--color-primary);
             color: white;
-            transform: scale(1.1);
         }
 
         .toolbar button.active {
@@ -606,10 +571,10 @@
             color: white;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Settings Panel                      */
-        /* ═══════════════════════════════════ */
-        .settings-panel {
+        /* Settings Panel */
+        .settings-panel,
+        .toc,
+        .share-panel {
             position: fixed;
             top: 80px;
             right: 20px;
@@ -621,9 +586,13 @@
             display: none;
             z-index: 999;
             border: 1px solid var(--color-border);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
         }
 
-        .settings-panel.show {
+        .settings-panel.show,
+        .toc.show,
+        .share-panel.show {
             display: block;
             animation: slideIn 0.3s ease;
         }
@@ -696,47 +665,13 @@
             transform: scale(1.1);
         }
 
-        .theme-light {
-            background: linear-gradient(135deg, #ffffff, #f5f7fa);
-        }
+        .theme-light { background: linear-gradient(135deg, #ffffff, #f5f7fa); }
+        .theme-dark { background: linear-gradient(135deg, #1a202c, #2d3748); }
+        .theme-sepia { background: linear-gradient(135deg, #faf3e7, #f0d68a); }
+        .theme-green { background: linear-gradient(135deg, #f0fff4, #c6f6d5); }
 
-        .theme-dark {
-            background: linear-gradient(135deg, #1a202c, #2d3748);
-        }
-
-        .theme-sepia {
-            background: linear-gradient(135deg, #faf3e7, #f0d68a);
-        }
-
-        .theme-green {
-            background: linear-gradient(135deg, #f0fff4, #c6f6d5);
-        }
-
-        /* ═══════════════════════════════════ */
-        /* Table of Contents                   */
-        /* ═══════════════════════════════════ */
-        .toc {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            width: 280px;
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-            background: var(--color-surface);
-            border-radius: 16px;
-            box-shadow: var(--shadow-lg);
-            padding: 20px;
-            display: none;
-            z-index: 999;
-            border: 1px solid var(--color-border);
-        }
-
-        .toc.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
-
-        .toc h3 {
+        /* TOC */
+        .toc h3, .share-panel h3 {
             font-size: 14px;
             color: var(--color-primary);
             margin-bottom: 12px;
@@ -760,45 +695,14 @@
             background: var(--color-hover);
             color: var(--color-primary);
             border-left-color: var(--color-primary);
-            padding-left: 15px;
         }
 
         .toc-article {
             font-size: 12px !important;
             padding-left: 25px !important;
-            color: var(--color-text-light) !important;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Share Panel                         */
-        /* ═══════════════════════════════════ */
-        .share-panel {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            width: 280px;
-            background: var(--color-surface);
-            border-radius: 16px;
-            box-shadow: var(--shadow-lg);
-            padding: 20px;
-            display: none;
-            z-index: 999;
-            border: 1px solid var(--color-border);
-        }
-
-        .share-panel.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
-
-        .share-panel h3 {
-            font-size: 14px;
-            color: var(--color-primary);
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--color-border);
-        }
-
+        /* Share Panel */
         .share-options {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -823,7 +727,6 @@
         .share-btn:hover {
             background: var(--color-primary);
             color: white;
-            transform: translateY(-2px);
         }
 
         .share-btn-icon {
@@ -835,9 +738,7 @@
             font-weight: 500;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Action Bar (Bottom)                 */
-        /* ═══════════════════════════════════ */
+        /* Action Bar */
         .action-bar {
             position: fixed;
             bottom: 20px;
@@ -877,12 +778,9 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.4);
         }
 
-        /* ═══════════════════════════════════ */
-        /* Toast Notification                  */
-        /* ═══════════════════════════════════ */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 100px;
@@ -905,86 +803,54 @@
         }
 
         /* ═══════════════════════════════════ */
-        /* Print Styles                        */
-        /* ═══════════════════════════════════ */
-        @media print {
-            body {
-                background: white !important;
-                padding: 0;
-                font-size: 12px;
-            }
-
-            .container {
-                max-width: 100%;
-                margin: 0;
-                box-shadow: none;
-                border-radius: 0;
-                padding-bottom: 0;
-                background: white !important;
-            }
-
-            .toolbar, .settings-panel, .toc, .share-panel,
-            .action-bar, .progress-bar, .toast,
-            .article-actions {
-                display: none !important;
-            }
-
-            .header {
-                background: white !important;
-                color: var(--color-primary) !important;
-                border-bottom: 3px double var(--color-primary);
-                padding: 20px;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .header::before {
-                display: none;
-            }
-
-            .doc-header {
-                background: #f8fafc !important;
-                position: static;
-                page-break-after: avoid;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .article {
-                page-break-inside: avoid;
-                padding: 15px 20px 15px 35px;
-            }
-
-            .article-content {
-                font-size: 12px;
-                line-height: 1.8;
-            }
-
-            @page {
-                size: A4;
-                margin: 20mm 15mm;
-            }
-        }
-
-        /* ═══════════════════════════════════ */
-        /* Mobile Responsive                   */
+        /* ⭐ MOBILE RESPONSIVE - FIXED!       */
         /* ═══════════════════════════════════ */
         @media (max-width: 768px) {
             body {
                 padding: 0;
                 background: var(--color-surface);
+                font-size: 14px;
+                line-height: 1.7;  /* ⭐ Reduced from 1.9 */
             }
 
             .container {
                 margin: 0;
                 border-radius: 0;
                 box-shadow: none;
+                padding-bottom: 80px;
+            }
+
+            /* Mobile-specific font sizes */
+            [data-fontsize="small"] {
+                --base-font-size: 12px;
+                --title-font-size: 18px;
+                --article-font-size: 12px;
+                --line-height: 1.65;
+            }
+            [data-fontsize="normal"] {
+                --base-font-size: 14px;
+                --title-font-size: 20px;
+                --article-font-size: 14px;
+                --line-height: 1.7;
+            }
+            [data-fontsize="large"] {
+                --base-font-size: 16px;
+                --title-font-size: 22px;
+                --article-font-size: 16px;
+                --line-height: 1.75;
+            }
+            [data-fontsize="xlarge"] {
+                --base-font-size: 18px;
+                --title-font-size: 24px;
+                --article-font-size: 18px;
+                --line-height: 1.8;
             }
 
             .toolbar {
                 top: 10px;
                 right: 10px;
                 padding: 4px;
+                gap: 2px;
             }
 
             .toolbar button {
@@ -996,54 +862,137 @@
             .settings-panel, .toc, .share-panel {
                 width: calc(100vw - 20px);
                 right: 10px;
+                top: 60px;
             }
 
             .header {
                 padding: 25px 15px;
             }
 
+            .header .flag {
+                font-size: 40px;
+                margin-bottom: 8px;
+            }
+
             .header h1 {
-                font-size: calc(var(--title-font-size, 28px) * 0.8);
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            .header .subtitle {
+                font-size: 12px;
             }
 
             .search-info {
-                padding: 15px;
+                padding: 12px 15px;
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 8px;
+            }
+
+            .search-query {
+                font-size: 13px;
+            }
+
+            .search-stats {
+                font-size: 11px;
+                gap: 8px;
             }
 
             .doc-header {
-                padding: 15px;
-                font-size: 15px;
+                padding: 12px 15px;
+                font-size: 14px;
+                gap: 8px;
             }
 
+            .doc-count {
+                font-size: 11px;
+                padding: 2px 8px;
+            }
+
+            /* ⭐ Article - Fixed spacing */
             .article {
-                padding: 20px 15px 20px 30px;
+                padding: 15px 15px 15px 25px;
             }
 
             .article::before {
-                left: 15px;
+                left: 12px;
+                top: 20px;
+                bottom: 15px;
             }
 
+            .article-header {
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                gap: 8px;
+            }
+
+            .article-number {
+                font-size: 13px;
+                padding: 3px 8px;
+            }
+
+            .article-title {
+                font-size: 13px;
+            }
+
+            .article-actions {
+                display: none; /* Hide on mobile */
+            }
+
+            .article-content {
+                font-size: var(--article-font-size, 14px);
+                line-height: var(--line-height, 1.7);
+            }
+
+            /* ⭐ FIXED: Better spacing */
             .article-content p {
-                text-indent: 20px;
-                padding-left: 10px;
+                margin-bottom: 8px;  /* ⭐ Reduced from 12px */
+                text-indent: 20px;    /* ⭐ Reduced from 30px */
+                padding-left: 8px;    /* ⭐ Reduced from 15px */
+            }
+
+            .article-content p.numbered {
+                padding-left: 32px;   /* ⭐ Reduced from 45px */
+                margin-bottom: 10px;
+            }
+
+            .article-content p.numbered .num-label {
+                min-width: 26px;
+                font-size: 12px;
+                padding: 1px 6px;
+            }
+
+            .article-content p.sub-numbered {
+                padding-left: 42px;
+                margin-bottom: 8px;
             }
 
             .action-bar {
-                padding: 10px 15px;
-                gap: 8px;
+                padding: 8px 12px;
+                gap: 6px;
+                bottom: 10px;
             }
 
             .btn {
                 padding: 8px 16px;
-                font-size: 13px;
+                font-size: 12px;
             }
         }
 
-        /* ═══════════════════════════════════ */
-        /* Scrollbar                           */
-        /* ═══════════════════════════════════ */
+        /* Very small screens */
+        @media (max-width: 400px) {
+            .article {
+                padding: 12px 12px 12px 20px;
+            }
+            
+            .article-content p {
+                margin-bottom: 6px;
+                text-indent: 15px;
+            }
+        }
+
+        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 10px;
         }
@@ -1055,6 +1004,210 @@
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light));
             border-radius: 5px;
+        }
+
+        /* ═══════════════════════════════════ */
+        /* ⭐ PRINT STYLES - FIXED!            */
+        /* ═══════════════════════════════════ */
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            /* Force light theme for print */
+            html, body {
+                background: white !important;
+                color: #1a202c !important;
+                padding: 0 !important;
+                font-size: 12pt !important;  /* ⭐ Larger for print */
+                line-height: 1.6 !important;
+            }
+
+            .container {
+                max-width: 100% !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            /* Hide UI elements */
+            .toolbar, .settings-panel, .toc, .share-panel,
+            .action-bar, .progress-bar, .toast,
+            .article-actions {
+                display: none !important;
+            }
+
+            /* ⭐ Header - Simple for print */
+            .header {
+                background: white !important;
+                color: #1a365d !important;
+                border-bottom: 3px solid #1a365d !important;
+                padding: 15px 0 !important;
+                page-break-after: avoid;
+            }
+
+            .header::before {
+                display: none !important;
+            }
+
+            .header .flag {
+                display: none !important;  /* ⭐ Hide flag (emoji issue) */
+            }
+
+            .header h1 {
+                font-size: 24pt !important;
+                color: #1a365d !important;
+                margin-bottom: 5px !important;
+            }
+
+            .header .subtitle {
+                font-size: 10pt !important;
+                color: #666 !important;
+            }
+
+            /* Search Info */
+            .search-info {
+                background: #f5f5f5 !important;
+                padding: 10px 15px !important;
+                border-bottom: 1px solid #ccc !important;
+                page-break-after: avoid;
+            }
+
+            .search-query .query-text {
+                background: #fef3c7 !important;
+                color: #744210 !important;
+            }
+
+            .reading-time {
+                background: #1a365d !important;
+                color: white !important;
+            }
+
+            /* Document */
+            .doc-header {
+                background: #f0f0f0 !important;
+                color: #1a365d !important;
+                border-left: 4px solid #1a365d !important;
+                padding: 12px 15px !important;
+                position: static !important;
+                page-break-after: avoid;
+                font-size: 14pt !important;
+            }
+
+            .doc-header.criminal {
+                background: #ffeeee !important;
+                border-left-color: #c53030 !important;
+                color: #c53030 !important;
+            }
+
+            .doc-header.civil {
+                background: #eef4ff !important;
+                border-left-color: #2b6cb0 !important;
+                color: #2b6cb0 !important;
+            }
+
+            .doc-header.other {
+                background: #eeffee !important;
+                border-left-color: #38a169 !important;
+                color: #38a169 !important;
+            }
+
+            /* Article */
+            .article {
+                padding: 15px 20px 15px 30px !important;
+                page-break-inside: avoid;
+                border-bottom: 1px solid #ddd !important;
+                background: white !important;
+            }
+
+            .article::before {
+                background: #d69e2e !important;
+            }
+
+            .article-header {
+                border-bottom: 1px dashed #ccc !important;
+                padding-bottom: 8px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .article-number {
+                background: #f0f0f0 !important;
+                color: #1a365d !important;
+                font-size: 13pt !important;
+                padding: 3px 10px !important;
+            }
+
+            .article-title {
+                font-size: 12pt !important;
+                color: #1a202c !important;
+            }
+
+            .article-title::before {
+                color: #d69e2e !important;
+            }
+
+            /* ⭐ Article Content - PROPER SIZE */
+            .article-content {
+                font-size: 11pt !important;  /* ⭐ Better readable size */
+                line-height: 1.6 !important;
+                color: #1a202c !important;
+            }
+
+            .article-content p {
+                margin-bottom: 8pt !important;
+                text-indent: 20pt !important;
+                padding-left: 10pt !important;
+            }
+
+            .article-content p.numbered {
+                padding-left: 35pt !important;
+                text-indent: 0 !important;
+            }
+
+            .article-content p.numbered .num-label {
+                background: #f0f0f0 !important;
+                color: #1a365d !important;
+                font-size: 10pt !important;
+            }
+
+            /* Highlight - Softer for print */
+            .highlight {
+                background: #fef3c7 !important;
+                color: #744210 !important;
+                padding: 1px 4px !important;
+                font-weight: 600 !important;
+            }
+
+            /* Footer */
+            .footer {
+                background: #1a365d !important;
+                color: white !important;
+                padding: 15px !important;
+                font-size: 9pt !important;
+            }
+
+            .footer .bot-name {
+                color: #d69e2e !important;
+            }
+
+            /* Page break controls */
+            h1, h2, h3, h4 {
+                page-break-after: avoid;
+            }
+
+            p {
+                orphans: 3;
+                widows: 3;
+            }
         }
     </style>
 </head>
@@ -1103,14 +1256,6 @@
             <button class="settings-btn" onclick="setFontSize('xlarge')">A++</button>
         </div>
     </div>
-    
-    <div class="settings-section">
-        <h4>📏 Reading Mode</h4>
-        <div class="settings-options">
-            <button class="settings-btn active" onclick="setReadingMode('normal')">🔄 Normal</button>
-            <button class="settings-btn" onclick="setReadingMode('focus')">🎯 Focus</button>
-        </div>
-    </div>
 </div>
 
 <!-- Table of Contents -->
@@ -1121,11 +1266,6 @@
         {{ doc_emoji[doc_name] }} {{ doc_name }}
         <span style="float: right; font-size: 11px; opacity: 0.7;">({{ articles|length }})</span>
     </a>
-    {% for article in articles[:3] %}
-    <a href="#article-{{ loop.index }}" class="toc-article">
-        📌 មាត្រា {{ article.article }}
-    </a>
-    {% endfor %}
     {% endfor %}
 </div>
 
@@ -1228,36 +1368,26 @@
     </div>
 </div>
 
-<!-- Action Bar (Bottom) -->
+<!-- Action Bar -->
 <div class="action-bar">
-    <button class="btn btn-primary" onclick="window.print()">
+    <button class="btn btn-primary" onclick="printPDF()">
         🖨️ Print / Save PDF
     </button>
 </div>
 
-<!-- Toast for Notifications -->
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-    // ═══════════════════════════════════════
-    // State Management
-    // ═══════════════════════════════════════
     const state = {
         theme: localStorage.getItem('theme') || 'light',
         fontSize: localStorage.getItem('fontSize') || 'normal',
-        highlights: localStorage.getItem('highlights') !== 'false',
-        readingMode: 'normal'
+        highlights: localStorage.getItem('highlights') !== 'false'
     };
     
-    // ═══════════════════════════════════════
-    // Initialize
-    // ═══════════════════════════════════════
     document.addEventListener('DOMContentLoaded', function() {
         applyState();
         calculateReadingTime();
-        
-        // Auto-hide mobile tip after 5 seconds
-        showMobileTip();
     });
     
     function applyState() {
@@ -1266,47 +1396,32 @@
         if (!state.highlights) toggleHighlight(true);
     }
     
-    // ═══════════════════════════════════════
-    // Theme Management
-    // ═══════════════════════════════════════
     function setTheme(theme, silent = false) {
         state.theme = theme;
         document.documentElement.setAttribute('data-theme', theme);
         document.body.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
         
-        // Update active button
-        document.querySelectorAll('.theme-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
         const activeBtn = document.querySelector(`.theme-${theme}`);
         if (activeBtn) activeBtn.classList.add('active');
         
         if (!silent) showToast(`🎨 Theme: ${theme}`);
     }
     
-    // ═══════════════════════════════════════
-    // Font Size Management
-    // ═══════════════════════════════════════
     function setFontSize(size, silent = false) {
         state.fontSize = size;
         document.body.setAttribute('data-fontsize', size);
         localStorage.setItem('fontSize', size);
         
-        // Update active button
-        document.querySelectorAll('.settings-section:nth-child(2) .settings-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
         const buttons = document.querySelectorAll('.settings-section:nth-child(2) .settings-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
         const sizeMap = { small: 0, normal: 1, large: 2, xlarge: 3 };
         if (buttons[sizeMap[size]]) buttons[sizeMap[size]].classList.add('active');
         
         if (!silent) showToast(`🔤 Font: ${size}`);
     }
     
-    // ═══════════════════════════════════════
-    // Highlight Toggle
-    // ═══════════════════════════════════════
     function toggleHighlight(silent = false) {
         state.highlights = !state.highlights;
         document.body.classList.toggle('no-highlight', !state.highlights);
@@ -1320,44 +1435,14 @@
         }
     }
     
-    // ═══════════════════════════════════════
-    // Reading Mode
-    // ═══════════════════════════════════════
-    function setReadingMode(mode) {
-        state.readingMode = mode;
-        
-        document.querySelectorAll('.settings-section:nth-child(3) .settings-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
-        if (mode === 'focus') {
-            document.body.style.background = '#000';
-            document.querySelector('.container').style.background = 'var(--color-surface)';
-            showToast('🎯 Focus mode ON');
-        } else {
-            document.body.style.background = 'var(--color-bg-gradient)';
-            showToast('🔄 Normal mode');
-        }
-    }
-    
-    // ═══════════════════════════════════════
-    // Panel Toggle
-    // ═══════════════════════════════════════
     function togglePanel(panelName) {
-        // Close all panels first
         ['settings', 'toc', 'share'].forEach(name => {
             const panel = document.getElementById(name + 'Panel');
             const btn = document.getElementById('btn' + name.charAt(0).toUpperCase() + name.slice(1));
-            if (panel && name !== panelName) {
-                panel.classList.remove('show');
-            }
-            if (btn && name !== panelName) {
-                btn.classList.remove('active');
-            }
+            if (panel && name !== panelName) panel.classList.remove('show');
+            if (btn && name !== panelName) btn.classList.remove('active');
         });
         
-        // Toggle selected panel
         const panel = document.getElementById(panelName + 'Panel');
         const btn = document.getElementById('btn' + panelName.charAt(0).toUpperCase() + panelName.slice(1));
         if (panel) {
@@ -1366,9 +1451,6 @@
         }
     }
     
-    // ═══════════════════════════════════════
-    // Reading Progress Bar
-    // ═══════════════════════════════════════
     window.addEventListener('scroll', function() {
         const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
         const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
@@ -1376,31 +1458,18 @@
         document.getElementById("progressBar").style.width = scrolled + "%";
     });
     
-    // ═══════════════════════════════════════
-    // Reading Time Calculator
-    // ═══════════════════════════════════════
     function calculateReadingTime() {
         const text = document.querySelector('.container').innerText || '';
         const words = text.split(/\s+/).length;
-        const wordsPerMinute = 200; // Khmer reading speed
-        const minutes = Math.ceil(words / wordsPerMinute);
-        
+        const minutes = Math.ceil(words / 200);
         const timeElement = document.getElementById('readingTime');
-        if (timeElement) {
-            timeElement.innerHTML = `⏱️ ${minutes} នាទី`;
-        }
+        if (timeElement) timeElement.innerHTML = `⏱️ ${minutes} នាទី`;
     }
     
-    // ═══════════════════════════════════════
-    // Scroll to Top
-    // ═══════════════════════════════════════
     function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     
-    // ═══════════════════════════════════════
-    // Toast Notification
-    // ═══════════════════════════════════════
     function showToast(message) {
         const toast = document.getElementById('toast');
         toast.textContent = message;
@@ -1408,9 +1477,6 @@
         setTimeout(() => toast.classList.remove('show'), 2000);
     }
     
-    // ═══════════════════════════════════════
-    // Share Functions
-    // ═══════════════════════════════════════
     function shareVia(platform) {
         const url = window.location.href;
         const title = document.title;
@@ -1432,19 +1498,13 @@
     function copyLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {
             showToast('🔗 Link copied!');
-        }).catch(() => {
-            showToast('❌ Copy failed');
         });
     }
     
-    // ═══════════════════════════════════════
-    // Article Actions
-    // ═══════════════════════════════════════
     function copyArticle(articleNum) {
         const article = document.getElementById(`article-${articleNum}`);
         if (article) {
-            const text = article.innerText;
-            navigator.clipboard.writeText(text).then(() => {
+            navigator.clipboard.writeText(article.innerText).then(() => {
                 showToast(`📋 មាត្រា ${articleNum} copied!`);
             });
         }
@@ -1453,68 +1513,38 @@
     function shareArticle(articleNum) {
         const url = `${window.location.href}#article-${articleNum}`;
         navigator.clipboard.writeText(url).then(() => {
-            showToast(`🔗 Link to មាត្រា ${articleNum} copied!`);
+            showToast(`🔗 Link copied!`);
         });
     }
     
-    // ═══════════════════════════════════════
-    // Mobile Tip
-    // ═══════════════════════════════════════
-    function showMobileTip() {
-        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (!isMobile) return;
+    // ⭐ FIXED: Print with proper theme
+    function printPDF() {
+        // Store current theme
+        const currentTheme = state.theme;
         
+        // Switch to light theme for printing
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.body.setAttribute('data-theme', 'light');
+        
+        // Small delay to let CSS apply
         setTimeout(() => {
-            const tip = document.createElement('div');
-            tip.className = 'toast show';
-            tip.style.cssText = 'bottom: 90px;';
+            window.print();
             
-            if (/Android/i.test(navigator.userAgent)) {
-                tip.innerHTML = '💡 ចុច ⋮ → Share → Print → Save PDF';
-            } else {
-                tip.innerHTML = '💡 ចុច Share 🔗 → Print → Save PDF';
-            }
-            
-            document.body.appendChild(tip);
+            // Restore original theme after print
             setTimeout(() => {
-                tip.classList.remove('show');
-                setTimeout(() => tip.remove(), 500);
-            }, 5000);
-        }, 1000);
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                document.body.setAttribute('data-theme', currentTheme);
+            }, 500);
+        }, 100);
     }
     
-    // ═══════════════════════════════════════
-    // Keyboard Shortcuts
-    // ═══════════════════════════════════════
+    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-        // Ctrl/Cmd + P for Print
         if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
             e.preventDefault();
-            window.print();
+            printPDF();
         }
         
-        // Ctrl/Cmd + D for Dark mode toggle
-        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-            e.preventDefault();
-            setTheme(state.theme === 'dark' ? 'light' : 'dark');
-        }
-        
-        // Ctrl/Cmd + Plus/Minus for font size
-        if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
-            e.preventDefault();
-            const sizes = ['small', 'normal', 'large', 'xlarge'];
-            const current = sizes.indexOf(state.fontSize);
-            if (current < sizes.length - 1) setFontSize(sizes[current + 1]);
-        }
-        
-        if ((e.ctrlKey || e.metaKey) && e.key === '-') {
-            e.preventDefault();
-            const sizes = ['small', 'normal', 'large', 'xlarge'];
-            const current = sizes.indexOf(state.fontSize);
-            if (current > 0) setFontSize(sizes[current - 1]);
-        }
-        
-        // Escape to close panels
         if (e.key === 'Escape') {
             ['settings', 'toc', 'share'].forEach(name => {
                 document.getElementById(name + 'Panel').classList.remove('show');
