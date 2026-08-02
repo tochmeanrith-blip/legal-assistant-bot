@@ -10,10 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700;800&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Battambang:wght@400;700&family=Moul&display=swap" rel="stylesheet">
 
     <style>
-        /* ═══════════════════════════════════ */
-        /* THEME VARIABLES                     */
-        /* ═══════════════════════════════════ */
-        
+        /* Theme Variables */
         [data-theme="light"] {
             --color-primary: #1a365d;
             --color-primary-light: #2c5282;
@@ -128,18 +125,8 @@
             --line-height: 2.1;
         }
 
-        /* ═══════════════════════════════════ */
-        /* Base Styles                         */
-        /* ═══════════════════════════════════ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Noto Sans Khmer', 'Khmer OS', sans-serif;
@@ -152,7 +139,6 @@
             transition: all 0.3s ease;
         }
 
-        /* Reading Progress Bar */
         .progress-bar {
             position: fixed;
             top: 0;
@@ -162,10 +148,8 @@
             background: linear-gradient(to right, var(--color-accent), var(--color-primary));
             z-index: 1001;
             transition: width 0.1s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        /* Container */
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -173,11 +157,10 @@
             border-radius: 16px;
             box-shadow: var(--shadow-lg);
             overflow: hidden;
-            padding-bottom: 100px;
+            padding-bottom: 20px;
             transition: all 0.3s ease;
         }
 
-        /* Header */
         .header {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
@@ -208,7 +191,6 @@
             margin-bottom: 12px;
             position: relative;
             z-index: 1;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
         }
 
         .header h1 {
@@ -229,7 +211,6 @@
             z-index: 1;
         }
 
-        /* Search Info */
         .search-info {
             background: var(--color-hover);
             padding: 20px 30px;
@@ -241,16 +222,8 @@
             gap: 15px;
         }
 
-        .search-query {
-            font-size: 15px;
-            color: var(--color-text);
-        }
-
-        .search-query strong {
-            color: var(--color-primary);
-            font-weight: 600;
-        }
-
+        .search-query { font-size: 15px; color: var(--color-text); }
+        .search-query strong { color: var(--color-primary); font-weight: 600; }
         .search-query .query-text {
             background: linear-gradient(120deg, var(--color-highlight) 0%, var(--color-highlight) 100%);
             padding: 4px 12px;
@@ -268,11 +241,7 @@
             align-items: center;
         }
 
-        .search-stats span {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+        .search-stats span { display: flex; align-items: center; gap: 5px; }
 
         .reading-time {
             background: var(--color-primary);
@@ -283,10 +252,7 @@
             font-weight: 600;
         }
 
-        /* Document Section */
-        .doc-section {
-            border-bottom: 1px solid var(--color-border);
-        }
+        .doc-section { border-bottom: 1px solid var(--color-border); }
 
         .doc-header {
             padding: 20px 30px;
@@ -308,13 +274,11 @@
             border-left: 5px solid var(--color-criminal);
             color: var(--color-criminal);
         }
-
         .doc-header.civil {
             background: linear-gradient(to right, rgba(43, 108, 176, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-civil);
             color: var(--color-civil);
         }
-
         .doc-header.other {
             background: linear-gradient(to right, rgba(56, 161, 105, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-other);
@@ -332,7 +296,6 @@
             margin-left: auto;
         }
 
-        /* Article */
         .article {
             padding: 25px 30px 25px 50px;
             border-bottom: 1px solid var(--color-border);
@@ -352,13 +315,8 @@
             opacity: 0.5;
         }
 
-        .article:hover {
-            background: var(--color-hover);
-        }
-
-        .article:last-child {
-            border-bottom: none;
-        }
+        .article:hover { background: var(--color-hover); }
+        .article:last-child { border-bottom: none; }
 
         .article-header {
             display: flex;
@@ -390,16 +348,9 @@
             flex: 1;
         }
 
-        .article-title::before {
-            content: "— ";
-            color: var(--color-accent);
-            font-weight: 700;
-        }
+        .article-title::before { content: "— "; color: var(--color-accent); font-weight: 700; }
 
-        .article-actions {
-            display: flex;
-            gap: 8px;
-        }
+        .article-actions { display: flex; gap: 8px; }
 
         .article-action-btn {
             background: none;
@@ -422,7 +373,6 @@
             border-color: var(--color-primary);
         }
 
-        /* Article Content */
         .article-content {
             color: var(--color-text);
             font-size: var(--article-font-size, 15px);
@@ -437,9 +387,7 @@
             padding-left: 15px;
         }
 
-        .article-content p:last-child {
-            margin-bottom: 0;
-        }
+        .article-content p:last-child { margin-bottom: 0; }
 
         .article-content p.numbered {
             text-indent: 0;
@@ -484,7 +432,6 @@
             font-size: 13px;
         }
 
-        /* Highlight */
         .highlight {
             background: var(--color-highlight);
             padding: 2px 6px;
@@ -506,7 +453,6 @@
             font-weight: inherit !important;
         }
 
-        /* Footer */
         .footer {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
@@ -543,7 +489,6 @@
             gap: 5px;
             z-index: 1000;
             border: 1px solid var(--color-border);
-            transition: all 0.3s;
         }
 
         .toolbar button {
@@ -564,6 +509,7 @@
         .toolbar button:hover {
             background: var(--color-primary);
             color: white;
+            transform: scale(1.1);
         }
 
         .toolbar button.active {
@@ -571,10 +517,20 @@
             color: white;
         }
 
-        /* Settings Panel */
+        /* ⭐ Print button - special style */
+        .toolbar button#btnPrint {
+            background: linear-gradient(135deg, var(--color-accent), #f6ad55);
+            color: white;
+        }
+
+        .toolbar button#btnPrint:hover {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            transform: scale(1.15);
+        }
+
+        /* Panels */
         .settings-panel,
-        .toc,
-        .share-panel {
+        .toc {
             position: fixed;
             top: 80px;
             right: 20px;
@@ -591,8 +547,7 @@
         }
 
         .settings-panel.show,
-        .toc.show,
-        .share-panel.show {
+        .toc.show {
             display: block;
             animation: slideIn 0.3s ease;
         }
@@ -602,13 +557,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .settings-section {
-            margin-bottom: 20px;
-        }
-
-        .settings-section:last-child {
-            margin-bottom: 0;
-        }
+        .settings-section { margin-bottom: 20px; }
+        .settings-section:last-child { margin-bottom: 0; }
 
         .settings-section h4 {
             font-size: 13px;
@@ -618,11 +568,7 @@
             letter-spacing: 0.5px;
         }
 
-        .settings-options {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
+        .settings-options { display: flex; gap: 5px; flex-wrap: wrap; }
 
         .settings-btn {
             padding: 8px 14px;
@@ -670,8 +616,7 @@
         .theme-sepia { background: linear-gradient(135deg, #faf3e7, #f0d68a); }
         .theme-green { background: linear-gradient(135deg, #f0fff4, #c6f6d5); }
 
-        /* TOC */
-        .toc h3, .share-panel h3 {
+        .toc h3 {
             font-size: 14px;
             color: var(--color-primary);
             margin-bottom: 12px;
@@ -697,93 +642,9 @@
             border-left-color: var(--color-primary);
         }
 
-        .toc-article {
-            font-size: 12px !important;
-            padding-left: 25px !important;
-        }
-
-        /* Share Panel */
-        .share-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .share-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 12px;
-            background: var(--color-hover);
-            border: 1px solid var(--color-border);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            color: var(--color-text);
-        }
-
-        .share-btn:hover {
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .share-btn-icon {
-            font-size: 24px;
-        }
-
-        .share-btn-label {
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        /* Action Bar */
-        .action-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--color-surface);
-            padding: 12px 20px;
-            border-radius: 50px;
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
-            border: 1px solid var(--color-border);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 24px;
-            border: none;
-            border-radius: 50px;
-            font-family: 'Noto Sans Khmer', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-        }
-
-        /* Toast */
         .toast {
             position: fixed;
-            bottom: 100px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--color-primary);
@@ -798,29 +659,24 @@
             transition: opacity 0.3s;
         }
 
-        .toast.show {
-            opacity: 1;
-        }
+        .toast.show { opacity: 1; }
 
-        /* ═══════════════════════════════════ */
-        /* ⭐ MOBILE RESPONSIVE - FIXED!       */
-        /* ═══════════════════════════════════ */
+        /* Mobile */
         @media (max-width: 768px) {
             body {
                 padding: 0;
                 background: var(--color-surface);
                 font-size: 14px;
-                line-height: 1.7;  /* ⭐ Reduced from 1.9 */
+                line-height: 1.7;
             }
 
             .container {
                 margin: 0;
                 border-radius: 0;
                 box-shadow: none;
-                padding-bottom: 80px;
+                padding-bottom: 20px;
             }
 
-            /* Mobile-specific font sizes */
             [data-fontsize="small"] {
                 --base-font-size: 12px;
                 --title-font-size: 18px;
@@ -859,29 +715,16 @@
                 font-size: 14px;
             }
 
-            .settings-panel, .toc, .share-panel {
+            .settings-panel, .toc {
                 width: calc(100vw - 20px);
                 right: 10px;
                 top: 60px;
             }
 
-            .header {
-                padding: 25px 15px;
-            }
-
-            .header .flag {
-                font-size: 40px;
-                margin-bottom: 8px;
-            }
-
-            .header h1 {
-                font-size: 20px;
-                margin-bottom: 4px;
-            }
-
-            .header .subtitle {
-                font-size: 12px;
-            }
+            .header { padding: 25px 15px; }
+            .header .flag { font-size: 40px; margin-bottom: 8px; }
+            .header h1 { font-size: 20px; margin-bottom: 4px; }
+            .header .subtitle { font-size: 12px; }
 
             .search-info {
                 padding: 12px 15px;
@@ -890,70 +733,33 @@
                 gap: 8px;
             }
 
-            .search-query {
-                font-size: 13px;
-            }
+            .search-query { font-size: 13px; }
+            .search-stats { font-size: 11px; gap: 8px; }
 
-            .search-stats {
-                font-size: 11px;
-                gap: 8px;
-            }
+            .doc-header { padding: 12px 15px; font-size: 14px; gap: 8px; }
+            .doc-count { font-size: 11px; padding: 2px 8px; }
 
-            .doc-header {
-                padding: 12px 15px;
-                font-size: 14px;
-                gap: 8px;
-            }
+            .article { padding: 15px 15px 15px 25px; }
+            .article::before { left: 12px; top: 20px; bottom: 15px; }
 
-            .doc-count {
-                font-size: 11px;
-                padding: 2px 8px;
-            }
-
-            /* ⭐ Article - Fixed spacing */
-            .article {
-                padding: 15px 15px 15px 25px;
-            }
-
-            .article::before {
-                left: 12px;
-                top: 20px;
-                bottom: 15px;
-            }
-
-            .article-header {
-                margin-bottom: 10px;
-                padding-bottom: 8px;
-                gap: 8px;
-            }
-
-            .article-number {
-                font-size: 13px;
-                padding: 3px 8px;
-            }
-
-            .article-title {
-                font-size: 13px;
-            }
-
-            .article-actions {
-                display: none; /* Hide on mobile */
-            }
+            .article-header { margin-bottom: 10px; padding-bottom: 8px; gap: 8px; }
+            .article-number { font-size: 13px; padding: 3px 8px; }
+            .article-title { font-size: 13px; }
+            .article-actions { display: none; }
 
             .article-content {
                 font-size: var(--article-font-size, 14px);
                 line-height: var(--line-height, 1.7);
             }
 
-            /* ⭐ FIXED: Better spacing */
             .article-content p {
-                margin-bottom: 8px;  /* ⭐ Reduced from 12px */
-                text-indent: 20px;    /* ⭐ Reduced from 30px */
-                padding-left: 8px;    /* ⭐ Reduced from 15px */
+                margin-bottom: 8px;
+                text-indent: 20px;
+                padding-left: 8px;
             }
 
             .article-content p.numbered {
-                padding-left: 32px;   /* ⭐ Reduced from 45px */
+                padding-left: 32px;
                 margin-bottom: 10px;
             }
 
@@ -967,66 +773,34 @@
                 padding-left: 42px;
                 margin-bottom: 8px;
             }
-
-            .action-bar {
-                padding: 8px 12px;
-                gap: 6px;
-                bottom: 10px;
-            }
-
-            .btn {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
         }
 
-        /* Very small screens */
         @media (max-width: 400px) {
-            .article {
-                padding: 12px 12px 12px 20px;
-            }
-            
-            .article-content p {
-                margin-bottom: 6px;
-                text-indent: 15px;
-            }
+            .article { padding: 12px 12px 12px 20px; }
+            .article-content p { margin-bottom: 6px; text-indent: 15px; }
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--color-hover);
-        }
-
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--color-hover); }
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light));
             border-radius: 5px;
         }
 
-        /* ═══════════════════════════════════ */
-        /* ⭐ PRINT STYLES - FIXED!            */
-        /* ═══════════════════════════════════ */
+        /* Print */
         @media print {
-            @page {
-                size: A4;
-                margin: 15mm;
-            }
+            @page { size: A4; margin: 15mm; }
 
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                color-adjust: exact !important;
             }
 
-            /* Force light theme for print */
             html, body {
                 background: white !important;
                 color: #1a202c !important;
                 padding: 0 !important;
-                font-size: 12pt !important;  /* ⭐ Larger for print */
+                font-size: 12pt !important;
                 line-height: 1.6 !important;
             }
 
@@ -1039,14 +813,11 @@
                 background: white !important;
             }
 
-            /* Hide UI elements */
-            .toolbar, .settings-panel, .toc, .share-panel,
-            .action-bar, .progress-bar, .toast,
-            .article-actions {
+            .toolbar, .settings-panel, .toc, .toast, .article-actions,
+            .progress-bar {
                 display: none !important;
             }
 
-            /* ⭐ Header - Simple for print */
             .header {
                 background: white !important;
                 color: #1a365d !important;
@@ -1055,18 +826,12 @@
                 page-break-after: avoid;
             }
 
-            .header::before {
-                display: none !important;
-            }
-
-            .header .flag {
-                display: none !important;  /* ⭐ Hide flag (emoji issue) */
-            }
+            .header::before { display: none !important; }
+            .header .flag { display: none !important; }
 
             .header h1 {
                 font-size: 24pt !important;
                 color: #1a365d !important;
-                margin-bottom: 5px !important;
             }
 
             .header .subtitle {
@@ -1074,12 +839,10 @@
                 color: #666 !important;
             }
 
-            /* Search Info */
             .search-info {
                 background: #f5f5f5 !important;
                 padding: 10px 15px !important;
                 border-bottom: 1px solid #ccc !important;
-                page-break-after: avoid;
             }
 
             .search-query .query-text {
@@ -1092,7 +855,6 @@
                 color: white !important;
             }
 
-            /* Document */
             .doc-header {
                 background: #f0f0f0 !important;
                 color: #1a365d !important;
@@ -1108,20 +870,17 @@
                 border-left-color: #c53030 !important;
                 color: #c53030 !important;
             }
-
             .doc-header.civil {
                 background: #eef4ff !important;
                 border-left-color: #2b6cb0 !important;
                 color: #2b6cb0 !important;
             }
-
             .doc-header.other {
                 background: #eeffee !important;
                 border-left-color: #38a169 !important;
                 color: #38a169 !important;
             }
 
-            /* Article */
             .article {
                 padding: 15px 20px 15px 30px !important;
                 page-break-inside: avoid;
@@ -1129,9 +888,7 @@
                 background: white !important;
             }
 
-            .article::before {
-                background: #d69e2e !important;
-            }
+            .article::before { background: #d69e2e !important; }
 
             .article-header {
                 border-bottom: 1px dashed #ccc !important;
@@ -1151,13 +908,10 @@
                 color: #1a202c !important;
             }
 
-            .article-title::before {
-                color: #d69e2e !important;
-            }
+            .article-title::before { color: #d69e2e !important; }
 
-            /* ⭐ Article Content - PROPER SIZE */
             .article-content {
-                font-size: 11pt !important;  /* ⭐ Better readable size */
+                font-size: 11pt !important;
                 line-height: 1.6 !important;
                 color: #1a202c !important;
             }
@@ -1179,7 +933,6 @@
                 font-size: 10pt !important;
             }
 
-            /* Highlight - Softer for print */
             .highlight {
                 background: #fef3c7 !important;
                 color: #744210 !important;
@@ -1187,7 +940,6 @@
                 font-weight: 600 !important;
             }
 
-            /* Footer */
             .footer {
                 background: #1a365d !important;
                 color: white !important;
@@ -1195,28 +947,15 @@
                 font-size: 9pt !important;
             }
 
-            .footer .bot-name {
-                color: #d69e2e !important;
-            }
-
-            /* Page break controls */
-            h1, h2, h3, h4 {
-                page-break-after: avoid;
-            }
-
-            p {
-                orphans: 3;
-                widows: 3;
-            }
+            .footer .bot-name { color: #d69e2e !important; }
         }
     </style>
 </head>
 <body data-theme="light" data-fontsize="normal">
 
-<!-- Reading Progress Bar -->
 <div class="progress-bar" id="progressBar"></div>
 
-<!-- Floating Toolbar -->
+<!-- ⭐ Simplified Toolbar (no Share button) -->
 <div class="toolbar">
     <button onclick="togglePanel('settings')" title="Settings" id="btnSettings">
         ⚙️
@@ -1224,8 +963,8 @@
     <button onclick="togglePanel('toc')" title="Table of Contents" id="btnToc">
         📑
     </button>
-    <button onclick="togglePanel('share')" title="Share" id="btnShare">
-        📤
+    <button onclick="printPDF()" title="Print / Save PDF" id="btnPrint">
+        🖨️
     </button>
     <button onclick="toggleHighlight()" title="Toggle Highlights" id="btnHighlight" class="active">
         ✨
@@ -1235,7 +974,6 @@
     </button>
 </div>
 
-<!-- Settings Panel -->
 <div class="settings-panel" id="settingsPanel">
     <div class="settings-section">
         <h4>🎨 Theme</h4>
@@ -1258,7 +996,6 @@
     </div>
 </div>
 
-<!-- Table of Contents -->
 <div class="toc" id="tocPanel">
     <h3>📑 មាតិកា ({{ total_docs }})</h3>
     {% for doc_name, articles in grouped_results.items() %}
@@ -1269,46 +1006,13 @@
     {% endfor %}
 </div>
 
-<!-- Share Panel -->
-<div class="share-panel" id="sharePanel">
-    <h3>📤 ចែករំលែក</h3>
-    <div class="share-options">
-        <a href="#" class="share-btn" onclick="shareVia('telegram'); return false;">
-            <span class="share-btn-icon">📱</span>
-            <span class="share-btn-label">Telegram</span>
-        </a>
-        <a href="#" class="share-btn" onclick="shareVia('whatsapp'); return false;">
-            <span class="share-btn-icon">💬</span>
-            <span class="share-btn-label">WhatsApp</span>
-        </a>
-        <a href="#" class="share-btn" onclick="shareVia('facebook'); return false;">
-            <span class="share-btn-icon">📘</span>
-            <span class="share-btn-label">Facebook</span>
-        </a>
-        <a href="#" class="share-btn" onclick="shareVia('email'); return false;">
-            <span class="share-btn-icon">✉️</span>
-            <span class="share-btn-label">Email</span>
-        </a>
-        <a href="#" class="share-btn" onclick="copyLink(); return false;">
-            <span class="share-btn-icon">🔗</span>
-            <span class="share-btn-label">Copy Link</span>
-        </a>
-        <a href="#" class="share-btn" onclick="window.print(); return false;">
-            <span class="share-btn-icon">🖨️</span>
-            <span class="share-btn-label">Print</span>
-        </a>
-    </div>
-</div>
-
 <div class="container">
-    <!-- Header -->
     <div class="header">
         <div class="flag">🇰🇭</div>
         <h1>ច្បាប់កម្ពុជា</h1>
         <div class="subtitle">Cambodia Legal Search System</div>
     </div>
 
-    <!-- Search Info -->
     <div class="search-info">
         <div class="search-query">
             🔍 <strong>ស្វែងរក:</strong> 
@@ -1322,7 +1026,6 @@
         </div>
     </div>
 
-    <!-- Results -->
     {% for doc_name, articles in grouped_results.items() %}
     <div class="doc-section">
         <div class="doc-header {{ doc_category[doc_name] }}" id="doc-{{ loop.index }}">
@@ -1342,9 +1045,6 @@
                     <button class="article-action-btn" onclick="copyArticle('{{ article.article }}')" title="Copy">
                         📋
                     </button>
-                    <button class="article-action-btn" onclick="shareArticle('{{ article.article }}')" title="Share">
-                        📤
-                    </button>
                 </div>
             </div>
             {% if article.body %}
@@ -1357,7 +1057,6 @@
     </div>
     {% endfor %}
 
-    <!-- Footer -->
     <div class="footer">
         <div class="bot-name">🤖 Cambodia Legal Bot v17.5</div>
         <div>បង្កើតនៅ {{ datetime_full }}</div>
@@ -1368,14 +1067,6 @@
     </div>
 </div>
 
-<!-- Action Bar -->
-<div class="action-bar">
-    <button class="btn btn-primary" onclick="printPDF()">
-        🖨️ Print / Save PDF
-    </button>
-</div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1436,7 +1127,7 @@
     }
     
     function togglePanel(panelName) {
-        ['settings', 'toc', 'share'].forEach(name => {
+        ['settings', 'toc'].forEach(name => {
             const panel = document.getElementById(name + 'Panel');
             const btn = document.getElementById('btn' + name.charAt(0).toUpperCase() + name.slice(1));
             if (panel && name !== panelName) panel.classList.remove('show');
@@ -1477,30 +1168,6 @@
         setTimeout(() => toast.classList.remove('show'), 2000);
     }
     
-    function shareVia(platform) {
-        const url = window.location.href;
-        const title = document.title;
-        const text = `${title}\n${url}`;
-        
-        const urls = {
-            telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-            whatsapp: `https://wa.me/?text=${encodeURIComponent(text)}`,
-            facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-            email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`
-        };
-        
-        if (urls[platform]) {
-            window.open(urls[platform], '_blank');
-            showToast(`📤 Shared via ${platform}`);
-        }
-    }
-    
-    function copyLink() {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            showToast('🔗 Link copied!');
-        });
-    }
-    
     function copyArticle(articleNum) {
         const article = document.getElementById(`article-${articleNum}`);
         if (article) {
@@ -1510,35 +1177,26 @@
         }
     }
     
-    function shareArticle(articleNum) {
-        const url = `${window.location.href}#article-${articleNum}`;
-        navigator.clipboard.writeText(url).then(() => {
-            showToast(`🔗 Link copied!`);
-        });
-    }
-    
-    // ⭐ FIXED: Print with proper theme
+    // ⭐ Print with proper theme switch
     function printPDF() {
-        // Store current theme
         const currentTheme = state.theme;
         
         // Switch to light theme for printing
         document.documentElement.setAttribute('data-theme', 'light');
         document.body.setAttribute('data-theme', 'light');
         
-        // Small delay to let CSS apply
+        showToast('🖨️ កំពុងរៀបចំសម្រាប់ Print...');
+        
         setTimeout(() => {
             window.print();
             
-            // Restore original theme after print
             setTimeout(() => {
                 document.documentElement.setAttribute('data-theme', currentTheme);
                 document.body.setAttribute('data-theme', currentTheme);
             }, 500);
-        }, 100);
+        }, 300);
     }
     
-    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
             e.preventDefault();
@@ -1546,8 +1204,9 @@
         }
         
         if (e.key === 'Escape') {
-            ['settings', 'toc', 'share'].forEach(name => {
-                document.getElementById(name + 'Panel').classList.remove('show');
+            ['settings', 'toc'].forEach(name => {
+                const panel = document.getElementById(name + 'Panel');
+                if (panel) panel.classList.remove('show');
                 const btn = document.getElementById('btn' + name.charAt(0).toUpperCase() + name.slice(1));
                 if (btn) btn.classList.remove('active');
             });
