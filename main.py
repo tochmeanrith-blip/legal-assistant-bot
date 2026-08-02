@@ -1621,8 +1621,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ═══════════════════════════════════════════════
 def run_flask_server():
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🌐 Flask server starting on port {port}")
-    flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    logger.info(f"🌐 Production server starting on port {port}")
+    try:
+        from waitress import serve
+        serve(flask_app, host="0.0.0.0", port=port, threads=4)
+    except ImportError:
+        logger.warning("⚠️ Waitress not installed, using Flask dev server")
+        flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 # ═══════════════════════════════════════════════
 # Main
