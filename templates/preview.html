@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
 
+    <!-- ⭐ Only Noto Sans Khmer -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700;800&family=Noto+Serif+Khmer:wght@400;500;600;700&family=Battambang:wght@400;700&family=Moul&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         /* Theme Variables */
@@ -104,44 +105,52 @@
             --base-font-size: 13px;
             --title-font-size: 22px;
             --article-font-size: 13px;
-            --line-height: 1.8;
+            --line-height: 1.75;
         }
         [data-fontsize="normal"] {
-            --base-font-size: 15px;
+            --base-font-size: 16px;
             --title-font-size: 26px;
-            --article-font-size: 15px;
-            --line-height: 1.9;
+            --article-font-size: 16px;
+            --line-height: 1.85;
         }
         [data-fontsize="large"] {
-            --base-font-size: 17px;
+            --base-font-size: 18px;
             --title-font-size: 30px;
-            --article-font-size: 17px;
-            --line-height: 2.0;
+            --article-font-size: 18px;
+            --line-height: 1.9;
         }
         [data-fontsize="xlarge"] {
-            --base-font-size: 19px;
+            --base-font-size: 20px;
             --title-font-size: 34px;
-            --article-font-size: 19px;
-            --line-height: 2.1;
+            --article-font-size: 20px;
+            --line-height: 2.0;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        /* ⭐ Force ALL elements to use Noto Sans Khmer */
+        * {
+            font-family: 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, sans-serif !important;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
 
         body {
-    font-family: 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: var(--base-font-size, 16px);
-    font-weight: 400;
-    line-height: var(--line-height, 1.8);
-    color: var(--color-text);
-    background: var(--color-bg-gradient);
-    min-height: 100vh;
-    padding: 20px 0;
-    transition: all 0.3s ease;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-}
+            font-size: var(--base-font-size, 16px);
+            font-weight: 400;
+            line-height: var(--line-height, 1.85);
+            color: var(--color-text);
+            background: var(--color-bg-gradient);
+            min-height: 100vh;
+            padding: 20px 0;
+            transition: all 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
 
         .progress-bar {
             position: fixed;
@@ -198,19 +207,18 @@
         }
 
         .header h1 {
-            font-family: 'Noto Sans Khmer', sans-serif;
-    font-size: var(--title-font-size, 26px);
-    font-weight: 700;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 1;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            font-size: var(--title-font-size, 26px);
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
         .header .subtitle {
             font-size: 14px;
             opacity: 0.9;
-            font-weight: 300;
+            font-weight: 400;
             position: relative;
             z-index: 1;
         }
@@ -226,8 +234,16 @@
             gap: 15px;
         }
 
-        .search-query { font-size: 15px; color: var(--color-text); }
-        .search-query strong { color: var(--color-primary); font-weight: 600; }
+        .search-query { 
+            font-size: 15px; 
+            color: var(--color-text); 
+        }
+        
+        .search-query strong { 
+            color: var(--color-primary); 
+            font-weight: 600; 
+        }
+        
         .search-query .query-text {
             background: linear-gradient(120deg, var(--color-highlight) 0%, var(--color-highlight) 100%);
             padding: 4px 12px;
@@ -245,7 +261,11 @@
             align-items: center;
         }
 
-        .search-stats span { display: flex; align-items: center; gap: 5px; }
+        .search-stats span { 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
 
         .reading-time {
             background: var(--color-primary);
@@ -256,21 +276,22 @@
             font-weight: 600;
         }
 
-        .doc-section { border-bottom: 1px solid var(--color-border); }
+        .doc-section { 
+            border-bottom: 1px solid var(--color-border); 
+        }
 
         .doc-header {
             padding: 20px 30px;
-    font-family: 'Noto Sans Khmer', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: sticky;
-    top: 4px;
-    z-index: 10;
-    background: var(--color-surface);
-    transition: all 0.3s
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 4px;
+            z-index: 10;
+            background: var(--color-surface);
+            transition: all 0.3s;
         }
 
         .doc-header.criminal {
@@ -278,11 +299,13 @@
             border-left: 5px solid var(--color-criminal);
             color: var(--color-criminal);
         }
+        
         .doc-header.civil {
             background: linear-gradient(to right, rgba(43, 108, 176, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-civil);
             color: var(--color-civil);
         }
+        
         .doc-header.other {
             background: linear-gradient(to right, rgba(56, 161, 105, 0.1) 0%, var(--color-surface) 60%);
             border-left: 5px solid var(--color-other);
@@ -296,7 +319,6 @@
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 600;
-            font-family: 'Noto Sans Khmer', sans-serif;
             margin-left: auto;
         }
 
@@ -319,8 +341,13 @@
             opacity: 0.5;
         }
 
-        .article:hover { background: var(--color-hover); }
-        .article:last-child { border-bottom: none; }
+        .article:hover { 
+            background: var(--color-hover); 
+        }
+        
+        .article:last-child { 
+            border-bottom: none; 
+        }
 
         .article-header {
             display: flex;
@@ -333,28 +360,33 @@
         }
 
         .article-number {
-            font-family: 'Noto Sans Khmer', sans-serif;
-    font-weight: 700;
-    color: var(--color-primary);
-    font-size: 17px;
-    white-space: nowrap;
-    background: var(--color-hover);
-    padding: 4px 12px;
-    border-radius: 6px;
-    box-shadow: var(--shadow-sm);
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 17px;
+            white-space: nowrap;
+            background: var(--color-hover);
+            padding: 4px 12px;
+            border-radius: 6px;
+            box-shadow: var(--shadow-sm);
         }
 
         .article-title {
-            font-family: 'Noto Sans Khmer', sans-serif;
-    font-weight: 600;
-    color: var(--color-text);
-    font-size: 16px;
-    flex: 1;
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: 16px;
+            flex: 1;
         }
 
-        .article-title::before { content: "— "; color: var(--color-accent); font-weight: 700; }
+        .article-title::before { 
+            content: "— "; 
+            color: var(--color-accent); 
+            font-weight: 700; 
+        }
 
-        .article-actions { display: flex; gap: 8px; }
+        .article-actions { 
+            display: flex; 
+            gap: 8px; 
+        }
 
         .article-action-btn {
             background: none;
@@ -379,8 +411,8 @@
 
         .article-content {
             color: var(--color-text);
-            font-size: var(--article-font-size, 15px);
-            line-height: var(--line-height, 1.9);
+            font-size: var(--article-font-size, 16px);
+            line-height: var(--line-height, 1.85);
             text-align: justify;
             padding: 5px 0;
         }
@@ -391,7 +423,9 @@
             padding-left: 15px;
         }
 
-        .article-content p:last-child { margin-bottom: 0; }
+        .article-content p:last-child { 
+            margin-bottom: 0; 
+        }
 
         .article-content p.numbered {
             text-indent: 0;
@@ -480,7 +514,6 @@
             opacity: 0.85;
         }
 
-        /* Toolbar */
         .toolbar {
             position: fixed;
             top: 20px;
@@ -521,7 +554,6 @@
             color: white;
         }
 
-        /* ⭐ Print button - special style */
         .toolbar button#btnPrint {
             background: linear-gradient(135deg, var(--color-accent), #f6ad55);
             color: white;
@@ -532,7 +564,6 @@
             transform: scale(1.15);
         }
 
-        /* Panels */
         .settings-panel,
         .toc {
             position: fixed;
@@ -572,7 +603,11 @@
             letter-spacing: 0.5px;
         }
 
-        .settings-options { display: flex; gap: 5px; flex-wrap: wrap; }
+        .settings-options { 
+            display: flex; 
+            gap: 5px; 
+            flex-wrap: wrap; 
+        }
 
         .settings-btn {
             padding: 8px 14px;
@@ -582,7 +617,6 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 13px;
-            font-family: 'Noto Sans Khmer', sans-serif;
             transition: all 0.2s;
             flex: 1;
             min-width: 60px;
@@ -670,7 +704,7 @@
             body {
                 padding: 0;
                 background: var(--color-surface);
-                font-size: 14px;
+                font-size: 15px;
                 line-height: 1.7;
             }
 
@@ -682,27 +716,27 @@
             }
 
             [data-fontsize="small"] {
-                --base-font-size: 12px;
+                --base-font-size: 13px;
                 --title-font-size: 18px;
-                --article-font-size: 12px;
+                --article-font-size: 13px;
                 --line-height: 1.65;
             }
             [data-fontsize="normal"] {
-                --base-font-size: 14px;
+                --base-font-size: 15px;
                 --title-font-size: 20px;
-                --article-font-size: 14px;
+                --article-font-size: 15px;
                 --line-height: 1.7;
             }
             [data-fontsize="large"] {
-                --base-font-size: 16px;
+                --base-font-size: 17px;
                 --title-font-size: 22px;
-                --article-font-size: 16px;
+                --article-font-size: 17px;
                 --line-height: 1.75;
             }
             [data-fontsize="xlarge"] {
-                --base-font-size: 18px;
+                --base-font-size: 19px;
                 --title-font-size: 24px;
-                --article-font-size: 18px;
+                --article-font-size: 19px;
                 --line-height: 1.8;
             }
 
@@ -752,7 +786,7 @@
             .article-actions { display: none; }
 
             .article-content {
-                font-size: var(--article-font-size, 14px);
+                font-size: var(--article-font-size, 15px);
                 line-height: var(--line-height, 1.7);
             }
 
@@ -874,11 +908,13 @@
                 border-left-color: #c53030 !important;
                 color: #c53030 !important;
             }
+            
             .doc-header.civil {
                 background: #eef4ff !important;
                 border-left-color: #2b6cb0 !important;
                 color: #2b6cb0 !important;
             }
+            
             .doc-header.other {
                 background: #eeffee !important;
                 border-left-color: #38a169 !important;
@@ -959,7 +995,6 @@
 
 <div class="progress-bar" id="progressBar"></div>
 
-<!-- ⭐ Simplified Toolbar (no Share button) -->
 <div class="toolbar">
     <button onclick="togglePanel('settings')" title="Settings" id="btnSettings">
         ⚙️
@@ -1062,7 +1097,7 @@
     {% endfor %}
 
     <div class="footer">
-        <div class="bot-name">🤖 Cambodia Legal Bot v17.5</div>
+        <div class="bot-name">🤖 Cambodia Legal Bot v18.0</div>
         <div>បង្កើតនៅ {{ datetime_full }}</div>
         <div class="warning">
             ⚠️ ឯកសារនេះសម្រាប់ជាឯកសារយោង មិនមែនជាដំបូន្មានផ្នែកច្បាប់ទេ។<br>
@@ -1181,11 +1216,9 @@
         }
     }
     
-    // ⭐ Print with proper theme switch
     function printPDF() {
         const currentTheme = state.theme;
         
-        // Switch to light theme for printing
         document.documentElement.setAttribute('data-theme', 'light');
         document.body.setAttribute('data-theme', 'light');
         
