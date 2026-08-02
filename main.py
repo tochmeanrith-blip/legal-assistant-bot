@@ -777,11 +777,6 @@ def build_smart_category_keyboard(query, suggested=None):
         )])
     
     buttons.append([InlineKeyboardButton(
-        "━━━━━━━━━━━━━━━━",
-        callback_data="smartcat:separator"
-    )])
-    
-    buttons.append([InlineKeyboardButton(
         "📚  ស្វែងរកគ្រប់ច្បាប់",
         callback_data="smartcat:all"
     )])
@@ -798,19 +793,14 @@ def build_smart_category_keyboard(query, suggested=None):
     
     return InlineKeyboardMarkup(buttons)
 
-
 def build_smart_category_message(query, search_type="search", suggested=None):
     if search_type == "article":
-        msg = "📂  <b>ជ្រើសរើសប្រភេទច្បាប់</b>\n"
-        msg += "     <i>ដើម្បីរកមាត្រា</i>\n"
+        msg = "📂 <b>ជ្រើសរើសប្រភេទច្បាប់</b>  <i>ដើម្បីរកមាត្រា</i>\n"
     else:
-        msg = "📂  <b>ជ្រើសរើសប្រភេទច្បាប់</b>\n"
-        msg += "     <i>ដើម្បីស្វែងរក</i>\n"
+        msg = "📂 <b>ជ្រើសរើសប្រភេទច្បាប់</b>  <i>ដើម្បីស្វែងរក</i>\n"
     
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    
-    msg += f"🔍  <b>សំណួរ:</b>\n"
-    msg += f"     <code>{escape_html(query)}</code>\n\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n"
+    msg += f"🔍 <b>សំណួរ:</b> <code>{escape_html(query)}</code>\n"
     
     if suggested:
         cat_names = {
@@ -818,23 +808,10 @@ def build_smart_category_message(query, search_type="search", suggested=None):
             "civil": "🔵 រដ្ឋប្បវេណី",
             "other": "🟢 ច្បាប់ផ្សេងៗ"
         }
-        msg += f"💡  <b>ណែនាំសម្រាប់អ្នក:</b>\n"
-        msg += f"     {cat_names.get(suggested, '')}\n\n"
+        msg += f"💡 <b>ណែនាំសម្រាប់អ្នក:</b> {cat_names.get(suggested, '')}\n"
     
-    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
-    msg += "📚  <b>ប្រភេទច្បាប់:</b>\n\n"
-    
-    msg += "🔴  <b>ព្រហ្មទណ្ឌ</b>\n"
-    msg += "     ការលួច • សម្លាប់ • ក្លែងបន្លំ\n"
-    msg += "     រំលោភ • វាយ • គ្រឿងញៀន\n\n"
-    
-    msg += "🔵  <b>រដ្ឋប្បវេណី</b>\n"
-    msg += "     កិច្ចសន្យា • ដីធ្លី • គ្រួសារ\n"
-    msg += "     មរតក • លែងលះ • អចលនវត្ថុ\n\n"
-    
-    msg += "🟢  <b>ច្បាប់ផ្សេងៗ</b>\n"
-    msg += "     ចរាចរណ៍ • ការងារ • បរិស្ថាន\n"
-    msg += "     អនីតិជន • ការជួល • ពាណិជ្ជកម្ម\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n"
+    msg += "👇 <b>សូមជ្រើសរើសប្រភេទ:</b>"
     
     return msg
 
