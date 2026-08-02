@@ -1469,6 +1469,9 @@ async def process_article_query(update, context, article_num, doc_name=None):
 # ═══════════════════════════════════════════════
 # Callback Handler
 # ═══════════════════════════════════════════════
+# ═══════════════════════════════════════════════
+# Callback Handler
+# ═══════════════════════════════════════════════
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = update.effective_user.id
@@ -1507,35 +1510,33 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await handle_smart_category_selection(update, context, action)
             return
 
-        # ⭐ Preview PDF - Send only button (minimal message)
-    if data == "action:preview_pdf":
-    session = USER_SESSIONS.get(user_id)
-    if not session or not session.get("results"):
-        await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
-        return
-    
-    # Build preview
-    preview_data = build_preview_data(session)
-    preview_id = store_preview(preview_data)
-    
-    base_url = RENDER_EXTERNAL_URL.rstrip("/")
-    preview_url = f"{base_url}/preview/{preview_id}"
-    
-    # ⭐ Send minimal button - direct link
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(
-            f"🌐  បើក Preview  ({preview_data['total_articles']} មាត្រា)",
-            url=preview_url
-        )]
-    ])
-    
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text=f"🖨️ Preview Ready! 👇",
-        reply_markup=keyboard,
-        disable_web_page_preview=True
-    )
-    return
+        # ⭐ v18.1: Preview PDF - Minimal direct button
+        if data == "action:preview_pdf":
+            session = USER_SESSIONS.get(user_id)
+            if not session or not session.get("results"):
+                await query.answer("⚠️ គ្មានលទ្ធផលដើម្បី preview", show_alert=True)
+                return
+            
+            preview_data = build_preview_data(session)
+            preview_id = store_preview(preview_data)
+            
+            base_url = RENDER_EXTERNAL_URL.rstrip("/")
+            preview_url = f"{base_url}/preview/{preview_id}"
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton(
+                    f"🌐  បើក Preview  ({preview_data['total_articles']} មាត្រា)",
+                    url=preview_url
+                )]
+            ])
+            
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="🖨️ Preview Ready! 👇",
+                reply_markup=keyboard,
+                disable_web_page_preview=True
+            )
+            return
 
         # View Article (from popular)
         if data.startswith("viewart:"):
