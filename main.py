@@ -1846,7 +1846,7 @@ async def start_from_callback(query):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "╔═══════════════════╗\n"
-        "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b> ║<b>រៀបចំដោយ លោក តូច មានរឹទ្ធិ</b> \n"
+        "║  🇰🇭 <b>ច្បាប់កម្ពុជា</b>║<b>រៀបចំដោយ លោក តូច មានរឹទ្ធិ</b> \n"
         "╚═══════════════════╝\n\n"
         "សូមស្វាគមន៍! 🤖 <i>v18.0 Smart</i>\n\n"
         "📌 <b>របៀបប្រើ:</b>\n"
